@@ -8,7 +8,7 @@ async function verify(slug: string, language: Language, code: string) {
   const response = await fetch(`${API_URL}/api/run`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ language, code, stdin: "" }),
+    body: JSON.stringify({ language, code, stdin: "", problemSlug: slug }),
     signal: AbortSignal.timeout(30_000)
   });
   const result = (await response.json()) as RunResult & { error?: string };

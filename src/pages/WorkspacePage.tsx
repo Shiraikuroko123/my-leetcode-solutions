@@ -27,6 +27,7 @@ import { useProgress } from "../hooks/useProgress";
 import type { Theme } from "../hooks/useTheme";
 import { fetchExternalSolution, runCode, type ExternalSolution } from "../lib/api";
 import { getFeaturedProblem, getSolutionLanguages, officialProblemUrl, problemBySlug, problems } from "../lib/catalog";
+import { isLegacyFeaturedStarter } from "../lib/drafts";
 import type { Language, RunResult } from "../types/problem";
 
 type WorkspacePageProps = {
@@ -83,10 +84,12 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
     const starter = featured?.starterCode[language] || genericStarter(language, problem.title);
     const saved = window.localStorage.getItem(key);
     const contaminatedByReference = Boolean(saved && featured && saved === featured.solutionCode[language]);
+    const legacyStarter = Boolean(saved && isLegacyFeaturedStarter(problem.slug, language, saved));
+    const shouldResetDraft = contaminatedByReference || legacyStarter;
     loadedDraftKey.current = key;
     setReferenceMode(false);
-    setCode(contaminatedByReference ? starter : saved || starter);
-    if (contaminatedByReference) window.localStorage.setItem(key, starter);
+    setCode(shouldResetDraft ? starter : saved || starter);
+    if (shouldResetDraft) window.localStorage.setItem(key, starter);
     setRunResult(null);
     setRunError("");
     setExternalSolution(null);
@@ -143,7 +146,7 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
     setMobileTab("result");
     progress.markAttempted(problem.slug);
     try {
-      const result = await runCode(language, code);
+      const result = await runCode(language, code, "", problem.slug);
       setRunResult(result);
       if (result.code === 0 && /tests? passed/i.test(result.stdout)) progress.markSolved(problem.slug);
     } catch (error) {
@@ -388,7 +391,7 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
             {running && <p className="inline-loading"><LoaderCircle className="spin" size={16} />正在隔离沙箱中运行...</p>}
             {!running && !runResult && !runError && (
               <p className="console-placeholder">{featured
-                ? "点击“运行”执行当前文件。深度题解模板已包含可见测试用例。"
+                ? "点击“运行”后，服务端会附加检查用例；编辑器中不会显示预期答案。"
                 : "点击“运行”执行当前文件。第三方参考通常只含 Solution 类，需要自行补充 main 或测试入口。"}</p>
             )}
             {output && <pre className="console-stdout">{output}</pre>}

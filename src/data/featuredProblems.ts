@@ -28,22 +28,8 @@ const twoSum: FeaturedProblem = {
 class Solution:
     def twoSum(self, nums: List[int], target: int) -> List[int]:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    cases = [
-        ([2, 7, 11, 15], 9, [0, 1]),
-        ([3, 2, 4], 6, [1, 2]),
-        ([3, 3], 6, [0, 1]),
-    ]
-    for nums, target, expected in cases:
-        actual = solution.twoSum(nums, target)
-        assert actual == expected, (actual, expected)
-    print("3/3 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <vector>
+        raise NotImplementedError`,
+    cpp: `#include <vector>
 using namespace std;
 
 class Solution {
@@ -52,16 +38,7 @@ public:
         // 在这里完成你的解法
         return {};
     }
-};
-
-int main() {
-    Solution solution;
-    vector<int> a{2, 7, 11, 15};
-    vector<int> b{3, 2, 4};
-    assert((solution.twoSum(a, 9) == vector<int>{0, 1}));
-    assert((solution.twoSum(b, 6) == vector<int>{1, 2}));
-    cout << "2/2 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `from typing import List
@@ -133,17 +110,8 @@ const longestSubstring: FeaturedProblem = {
     python: `class Solution:
     def lengthOfLongestSubstring(self, s: str) -> int:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    assert solution.lengthOfLongestSubstring("abcabcbb") == 3
-    assert solution.lengthOfLongestSubstring("bbbbb") == 1
-    assert solution.lengthOfLongestSubstring("") == 0
-    print("3/3 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <string>
+        raise NotImplementedError`,
+    cpp: `#include <string>
 using namespace std;
 
 class Solution {
@@ -152,15 +120,7 @@ public:
         // 在这里完成你的解法
         return 0;
     }
-};
-
-int main() {
-    Solution solution;
-    assert(solution.lengthOfLongestSubstring("abcabcbb") == 3);
-    assert(solution.lengthOfLongestSubstring("bbbbb") == 1);
-    assert(solution.lengthOfLongestSubstring("") == 0);
-    cout << "3/3 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `class Solution:
@@ -236,17 +196,8 @@ const validParentheses: FeaturedProblem = {
     python: `class Solution:
     def isValid(self, s: str) -> bool:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    assert solution.isValid("()[]{}")
-    assert not solution.isValid("([)]")
-    assert solution.isValid("{[]}")
-    print("3/3 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <string>
+        raise NotImplementedError`,
+    cpp: `#include <string>
 using namespace std;
 
 class Solution {
@@ -255,15 +206,7 @@ public:
         // 在这里完成你的解法
         return false;
     }
-};
-
-int main() {
-    Solution solution;
-    assert(solution.isValid("()[]{}"));
-    assert(!solution.isValid("([)]"));
-    assert(solution.isValid("{[]}"));
-    cout << "3/3 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `class Solution:
@@ -336,16 +279,8 @@ const maximumSubarray: FeaturedProblem = {
 class Solution:
     def maxSubArray(self, nums: List[int]) -> int:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    assert solution.maxSubArray([-2,1,-3,4,-1,2,1,-5,4]) == 6
-    assert solution.maxSubArray([-1]) == -1
-    print("2/2 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <vector>
+        raise NotImplementedError`,
+    cpp: `#include <vector>
 using namespace std;
 
 class Solution {
@@ -354,16 +289,7 @@ public:
         // 在这里完成你的解法
         return 0;
     }
-};
-
-int main() {
-    Solution solution;
-    vector<int> a{-2,1,-3,4,-1,2,1,-5,4};
-    vector<int> b{-1};
-    assert(solution.maxSubArray(a) == 6);
-    assert(solution.maxSubArray(b) == -1);
-    cout << "2/2 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `from typing import List
@@ -431,16 +357,8 @@ const climbingStairs: FeaturedProblem = {
     python: `class Solution:
     def climbStairs(self, n: int) -> int:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    assert solution.climbStairs(2) == 2
-    assert solution.climbStairs(5) == 8
-    print("2/2 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-using namespace std;
+        raise NotImplementedError`,
+    cpp: `using namespace std;
 
 class Solution {
 public:
@@ -448,14 +366,7 @@ public:
         // 在这里完成你的解法
         return 0;
     }
-};
-
-int main() {
-    Solution solution;
-    assert(solution.climbStairs(2) == 2);
-    assert(solution.climbStairs(5) == 8);
-    cout << "2/2 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `class Solution:
@@ -519,16 +430,8 @@ const stockProfit: FeaturedProblem = {
 class Solution:
     def maxProfit(self, prices: List[int]) -> int:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    assert solution.maxProfit([7,1,5,3,6,4]) == 5
-    assert solution.maxProfit([7,6,4,3,1]) == 0
-    print("2/2 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <vector>
+        raise NotImplementedError`,
+    cpp: `#include <vector>
 using namespace std;
 
 class Solution {
@@ -537,16 +440,7 @@ public:
         // 在这里完成你的解法
         return 0;
     }
-};
-
-int main() {
-    Solution solution;
-    vector<int> a{7,1,5,3,6,4};
-    vector<int> b{7,6,4,3,1};
-    assert(solution.maxProfit(a) == 5);
-    assert(solution.maxProfit(b) == 0);
-    cout << "2/2 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `from typing import List
@@ -616,16 +510,8 @@ const numberOfIslands: FeaturedProblem = {
 class Solution:
     def numIslands(self, grid: List[List[str]]) -> int:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    grid = [["1","1","0"],["1","0","0"],["0","0","1"]]
-    assert solution.numIslands(grid) == 2
-    print("1/1 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <vector>
+        raise NotImplementedError`,
+    cpp: `#include <vector>
 using namespace std;
 
 class Solution {
@@ -634,14 +520,7 @@ public:
         // 在这里完成你的解法
         return 0;
     }
-};
-
-int main() {
-    Solution solution;
-    vector<vector<char>> grid{{'1','1','0'},{'1','0','0'},{'0','0','1'}};
-    assert(solution.numIslands(grid) == 2);
-    cout << "1/1 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `from typing import List
@@ -741,16 +620,8 @@ const binarySearch: FeaturedProblem = {
 class Solution:
     def search(self, nums: List[int], target: int) -> int:
         # 在这里完成你的解法
-        raise NotImplementedError
-
-if __name__ == "__main__":
-    solution = Solution()
-    assert solution.search([-1,0,3,5,9,12], 9) == 4
-    assert solution.search([-1,0,3,5,9,12], 2) == -1
-    print("2/2 tests passed")`,
-    cpp: `#include <cassert>
-#include <iostream>
-#include <vector>
+        raise NotImplementedError`,
+    cpp: `#include <vector>
 using namespace std;
 
 class Solution {
@@ -759,15 +630,7 @@ public:
         // 在这里完成你的解法
         return -1;
     }
-};
-
-int main() {
-    Solution solution;
-    vector<int> nums{-1,0,3,5,9,12};
-    assert(solution.search(nums, 9) == 4);
-    assert(solution.search(nums, 2) == -1);
-    cout << "2/2 tests passed\\n";
-}`
+};`
   },
   solutionCode: {
     python: `from typing import List

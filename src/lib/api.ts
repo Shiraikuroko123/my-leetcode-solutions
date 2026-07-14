@@ -17,11 +17,11 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload;
 }
 
-export async function runCode(language: Language, code: string, stdin = "") {
+export async function runCode(language: Language, code: string, stdin = "", problemSlug?: string) {
   const response = await fetch("/api/run", {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ language, code, stdin })
+    body: JSON.stringify({ language, code, stdin, problemSlug })
   });
   return parseResponse<RunResult>(response);
 }

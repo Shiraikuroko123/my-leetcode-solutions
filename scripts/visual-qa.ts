@@ -29,6 +29,15 @@ async function layoutMetrics(page: Page) {
 }
 
 async function main() {
+  for (const problem of Object.values(featuredProblems)) {
+    for (const language of ["python", "cpp"] as const) {
+      assert(
+        !/(tests passed|\bexpected\b|\bassert\b|if __name__|int main\s*\()/i.test(problem.starterCode[language]),
+        `${problem.slug}/${language} starter must not expose checks or expected results`
+      );
+    }
+  }
+
   await mkdir(OUTPUT, { recursive: true });
   const browser = await chromium.launch({ headless: true });
   try {
@@ -59,6 +68,9 @@ async function main() {
   await desktopPage.screenshot({ path: path.join(OUTPUT, "workspace-desktop.png") });
   const desktopWorkspace = await layoutMetrics(desktopPage);
   assert(desktopWorkspace.bodyWidth <= desktopWorkspace.viewportWidth, "Desktop workspace has horizontal overflow");
+  await desktopPage.getByRole("button", { name: "运行", exact: true }).click();
+  await desktopPage.locator(".console-stdout").getByText("Test 1 error: NotImplementedError", { exact: false }).waitFor({ timeout: 30_000 });
+  assert(!(await desktopPage.locator(".console-output").innerText()).includes("[0, 1]"), "Failed checks must not reveal an expected answer");
   await desktopPage.getByRole("button", { name: "问助教" }).click();
   await desktopPage.getByText("从思路开始，不急着看答案").waitFor();
   await desktopPage.waitForTimeout(300);

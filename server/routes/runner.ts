@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { attachFeaturedTests } from "../featuredTestHarnesses";
 import { createRateLimiter } from "../rateLimit";
 
 const router = Router();
@@ -7,7 +8,8 @@ const router = Router();
 const requestSchema = z.object({
   language: z.enum(["python", "cpp"]),
   code: z.string().min(1).max(50_000),
-  stdin: z.string().max(10_000).default("")
+  stdin: z.string().max(10_000).default(""),
+  problemSlug: z.string().max(200).optional()
 });
 
 type PistonStage = {
@@ -31,7 +33,8 @@ router.post("/", createRateLimiter(30, 60_000), async (request, response) => {
     return;
   }
 
-  const { language, code, stdin } = parsed.data;
+  const { language, code, stdin, problemSlug } = parsed.data;
+  const executableCode = attachFeaturedTests(problemSlug, language, code);
   const pistonUrl = (process.env.PISTON_URL || "http://127.0.0.1:2000/api/v2").replace(/\/$/, "");
   const runtime = language === "cpp" ? "c++" : "python";
   const fileName = language === "cpp" ? "main.cpp" : "main.py";
@@ -44,7 +47,7 @@ router.post("/", createRateLimiter(30, 60_000), async (request, response) => {
       body: JSON.stringify({
         language: runtime,
         version: "*",
-        files: [{ name: fileName, content: code }],
+        files: [{ name: fileName, content: executableCode }],
         stdin,
         compile_timeout: 10_000,
         run_timeout: 3_000,
