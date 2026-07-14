@@ -52,6 +52,39 @@ async function main() {
   assert(desktopCatalog.bodyWidth <= desktopCatalog.viewportWidth, "Desktop catalog has body-level horizontal overflow");
   assert(await desktopPage.locator("tbody tr").count() === 40, "Desktop catalog should render one 40-row page");
 
+  await desktopPage.getByRole("link", { name: "学习路径", exact: true }).click();
+  await desktopPage.waitForURL((url) => url.pathname === "/paths");
+  await desktopPage.getByRole("heading", { level: 1, name: "按知识体系逐步练习" }).waitFor({ state: "visible" });
+  assert(await desktopPage.locator(".learning-path-row").count() === 10, "Learning-path view should render all ten paths");
+  await desktopPage.screenshot({ path: path.join(OUTPUT, "paths-desktop.png"), fullPage: true });
+  const desktopPaths = await layoutMetrics(desktopPage);
+  assert(desktopPaths.bodyWidth <= desktopPaths.viewportWidth, "Desktop learning paths have body-level horizontal overflow");
+
+  await Promise.all([
+    desktopPage.waitForURL((url) => url.pathname === "/"),
+    desktopPage.goBack()
+  ]);
+  await Promise.all([
+    desktopPage.waitForURL((url) => url.pathname === "/paths"),
+    desktopPage.goForward()
+  ]);
+  await Promise.all([
+    desktopPage.waitForURL((url) => url.pathname === "/"),
+    desktopPage.goBack()
+  ]);
+
+  await desktopPage.getByRole("link", { name: "我的进度", exact: true }).click();
+  await desktopPage.waitForURL((url) => url.pathname === "/progress");
+  await desktopPage.getByRole("heading", { level: 1, name: "查看你的练习进度" }).waitFor({ state: "visible" });
+  await desktopPage.getByRole("navigation", { name: "练习状态筛选" }).waitFor({ state: "visible" });
+  await desktopPage.screenshot({ path: path.join(OUTPUT, "progress-desktop.png"), fullPage: true });
+  const desktopProgress = await layoutMetrics(desktopPage);
+  assert(desktopProgress.bodyWidth <= desktopProgress.viewportWidth, "Desktop progress has body-level horizontal overflow");
+  await Promise.all([
+    desktopPage.waitForURL((url) => url.pathname === "/"),
+    desktopPage.goBack()
+  ]);
+
   await desktopPage.getByRole("button", { name: "深度题解" }).click();
   await desktopPage.waitForTimeout(200);
   const featuredCount = Object.keys(featuredProblems).length;
@@ -103,6 +136,21 @@ async function main() {
   const mobileErrors = await collectErrors(mobilePage);
   mobilePage.on("dialog", (dialog) => void dialog.accept());
   await mobilePage.goto(BASE_URL, { waitUntil: "networkidle" });
+  await mobilePage.getByRole("link", { name: "学习路径", exact: true }).click();
+  await mobilePage.waitForURL((url) => url.pathname === "/paths");
+  await mobilePage.getByRole("heading", { level: 1, name: "按知识体系逐步练习" }).waitFor({ state: "visible" });
+  assert(await mobilePage.locator(".learning-path-row").count() === 10, "Mobile learning-path view should render all ten paths");
+  const mobilePaths = await layoutMetrics(mobilePage);
+  assert(mobilePaths.bodyWidth <= mobilePaths.viewportWidth, "Mobile learning paths have body-level horizontal overflow");
+  await mobilePage.screenshot({ path: path.join(OUTPUT, "paths-mobile.png"), fullPage: true });
+  await mobilePage.getByRole("link", { name: "我的进度", exact: true }).click();
+  await mobilePage.waitForURL((url) => url.pathname === "/progress");
+  await mobilePage.getByRole("heading", { level: 1, name: "查看你的练习进度" }).waitFor({ state: "visible" });
+  const mobileProgress = await layoutMetrics(mobilePage);
+  assert(mobileProgress.bodyWidth <= mobileProgress.viewportWidth, "Mobile progress has body-level horizontal overflow");
+  await mobilePage.screenshot({ path: path.join(OUTPUT, "progress-mobile.png"), fullPage: true });
+  await mobilePage.getByRole("link", { name: "题库", exact: true }).click();
+  await mobilePage.waitForURL((url) => url.pathname === "/");
   await mobilePage.getByRole("textbox", { name: "搜索题目" }).fill("两数之和");
   await mobilePage.waitForTimeout(250);
   await mobilePage.screenshot({ path: path.join(OUTPUT, "catalog-mobile.png"), fullPage: true });
@@ -138,6 +186,16 @@ async function main() {
   const compactPage = await compact.newPage();
   const compactErrors = await collectErrors(compactPage);
   compactPage.on("dialog", (dialog) => void dialog.accept());
+  await compactPage.goto(BASE_URL, { waitUntil: "networkidle" });
+  await compactPage.getByRole("link", { name: "学习路径", exact: true }).click();
+  await compactPage.getByRole("heading", { level: 1, name: "按知识体系逐步练习" }).waitFor({ state: "visible" });
+  const compactPaths = await layoutMetrics(compactPage);
+  assert(compactPaths.bodyWidth <= compactPaths.viewportWidth, "320px learning paths have body-level horizontal overflow");
+  await compactPage.getByRole("link", { name: "我的进度", exact: true }).click();
+  await compactPage.getByRole("heading", { level: 1, name: "查看你的练习进度" }).waitFor({ state: "visible" });
+  const compactProgress = await layoutMetrics(compactPage);
+  assert(compactProgress.bodyWidth <= compactProgress.viewportWidth, "320px progress has body-level horizontal overflow");
+  await compactPage.screenshot({ path: path.join(OUTPUT, "progress-compact.png"), fullPage: true });
   await compactPage.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
   await compactPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
   await compactPage.getByRole("button", { name: "问助教" }).click();
@@ -163,7 +221,7 @@ async function main() {
   await browser.close();
   const errors = [...desktopErrors, ...mobileErrors, ...compactErrors];
   assert(errors.length === 0, `Browser console errors:\n${errors.join("\n")}`);
-  console.log(JSON.stringify({ desktopCatalog, desktopWorkspace, mobileCatalog, mobileAssistant, mobileWorkspace, compactWorkspace, screenshots: OUTPUT }, null, 2));
+  console.log(JSON.stringify({ desktopCatalog, desktopPaths, desktopProgress, desktopWorkspace, mobilePaths, mobileProgress, mobileCatalog, mobileAssistant, mobileWorkspace, compactPaths, compactProgress, compactWorkspace, screenshots: OUTPUT }, null, 2));
   } finally {
     await browser.close().catch(() => undefined);
   }

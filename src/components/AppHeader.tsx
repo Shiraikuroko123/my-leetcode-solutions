@@ -19,8 +19,8 @@ export function AppHeader({ theme, onToggleTheme, compact = false }: AppHeaderPr
       {!compact && (
         <nav className="primary-nav" aria-label="主导航">
           <NavLink to="/" end>题库</NavLink>
-          <a href="#learning-paths">学习路径</a>
-          <a href="#progress">我的进度</a>
+          <NavLink to="/paths" end>学习路径</NavLink>
+          <NavLink to="/progress" end>我的进度</NavLink>
         </nav>
       )}
 

@@ -10,7 +10,9 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/" element={<CatalogPage theme={theme} onToggleTheme={toggleTheme} />} />
+      <Route path="/" element={<CatalogPage key="catalog" section="catalog" theme={theme} onToggleTheme={toggleTheme} />} />
+      <Route path="/paths" element={<CatalogPage key="paths" section="paths" theme={theme} onToggleTheme={toggleTheme} />} />
+      <Route path="/progress" element={<CatalogPage key="progress" section="progress" theme={theme} onToggleTheme={toggleTheme} />} />
       <Route path="/problems/:slug" element={(
         <Suspense fallback={<div className="route-loading">正在加载练习工作台...</div>}>
           <WorkspacePage theme={theme} onToggleTheme={toggleTheme} />

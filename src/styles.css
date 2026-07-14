@@ -544,9 +544,13 @@ a {
   border-radius: 6px;
 }
 
-.segmented-control button {
+.segmented-control button,
+.segmented-control a {
+  display: inline-flex;
   min-width: 50px;
   height: 28px;
+  align-items: center;
+  justify-content: center;
   padding: 0 9px;
   color: var(--color-muted);
   background: transparent;
@@ -556,12 +560,15 @@ a {
 }
 
 .segmented-control button:hover,
-.segmented-control button.is-active {
+.segmented-control button.is-active,
+.segmented-control a:hover,
+.segmented-control a.is-active {
   color: var(--color-ink-strong);
   background: var(--color-bg);
 }
 
-.segmented-control button.is-active {
+.segmented-control button.is-active,
+.segmented-control a.is-active {
   font-weight: 700;
 }
 
@@ -826,6 +833,145 @@ a {
 .pagination > div {
   display: flex;
   gap: 4px;
+}
+
+.heading-action {
+  flex: 0 0 auto;
+  margin-bottom: 2px;
+}
+
+.learning-path-list {
+  margin-top: 18px;
+  border-top: 1px solid var(--color-border);
+}
+
+.learning-path-list__header,
+.learning-path-row {
+  display: grid;
+  align-items: center;
+  gap: 24px;
+  grid-template-columns: minmax(240px, 1fr) 210px 112px;
+}
+
+.learning-path-list__header {
+  min-height: 42px;
+  padding: 0 16px;
+  color: var(--color-faint);
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.learning-path-list ol {
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.learning-path-row {
+  min-height: 86px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--color-border);
+  transition: background-color var(--duration-fast);
+}
+
+.learning-path-row:hover {
+  background: var(--color-surface);
+}
+
+.learning-path-copy {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  gap: 11px;
+}
+
+.learning-path-copy .path-dot {
+  flex: 0 0 auto;
+  margin-top: 7px;
+  background: var(--color-primary);
+}
+
+.learning-path-copy h2 {
+  margin: 0;
+  color: var(--color-ink-strong);
+  font-size: 15px;
+  font-weight: 720;
+  line-height: 1.4;
+}
+
+.learning-path-copy p {
+  max-width: 65ch;
+  margin: 3px 0 0;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.path-progress-summary {
+  min-width: 0;
+}
+
+.path-progress-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 7px;
+  color: var(--color-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.path-progress-label strong {
+  color: var(--color-ink-strong);
+  font-weight: 700;
+}
+
+.path-progress-track {
+  height: 5px;
+  overflow: hidden;
+  background: var(--color-surface-strong);
+  border-radius: 3px;
+}
+
+.path-progress-track span {
+  display: block;
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: inherit;
+  transition: width 220ms var(--ease-out);
+}
+
+.path-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  color: var(--color-accent);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.path-action:hover {
+  text-decoration: underline;
+}
+
+.progress-toolbar {
+  flex-wrap: wrap;
+}
+
+.progress-toolbar .search-field {
+  flex: 1 1 280px;
+}
+
+.progress-filter {
+  margin-left: auto;
+}
+
+.progress-filter a {
+  min-width: 62px;
 }
 
 .workspace-app {
@@ -1663,6 +1809,12 @@ a {
     border-top: 1px solid var(--color-border);
   }
 
+  .learning-path-list__header,
+  .learning-path-row {
+    gap: 18px;
+    grid-template-columns: minmax(220px, 1fr) 180px 96px;
+  }
+
   .workspace-grid {
     grid-template-columns: minmax(310px, 0.78fr) minmax(470px, 1.22fr);
   }
@@ -1851,9 +2003,39 @@ a {
     border-left: 1px solid var(--color-border) !important;
   }
 
-  .segmented-control button {
+  .segmented-control button,
+  .segmented-control a {
     min-width: 45px;
     padding: 0 7px;
+  }
+
+  .progress-filter {
+    width: 100%;
+    margin-left: 0;
+  }
+
+  .progress-filter a {
+    min-width: 0;
+    flex: 1 1 25%;
+  }
+
+  .learning-path-list__header {
+    display: none;
+  }
+
+  .learning-path-row {
+    min-height: 0;
+    gap: 13px 18px;
+    padding: 16px 10px;
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .learning-path-copy {
+    grid-column: 1 / -1;
+  }
+
+  .heading-action {
+    margin-top: 14px;
   }
 
   .problem-table {
@@ -1912,6 +2094,19 @@ a {
 }
 
 @media (max-width: 430px) {
+  .app-header:not(.app-header--compact) {
+    gap: 8px;
+    padding-inline: 8px;
+  }
+
+  .app-header:not(.app-header--compact) .primary-nav {
+    gap: 8px;
+  }
+
+  .app-header:not(.app-header--compact) .header-actions > a {
+    display: none;
+  }
+
   .editor-toolbar {
     gap: 6px;
     padding-inline: 4px;

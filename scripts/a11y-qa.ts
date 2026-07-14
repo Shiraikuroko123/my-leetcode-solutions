@@ -32,6 +32,12 @@ async function main() {
     await page.goto(BASE_URL, { waitUntil: "networkidle" });
     const findings = await audit(page, "catalog-desktop");
 
+    await page.goto(`${BASE_URL}/paths`, { waitUntil: "networkidle" });
+    findings.push(...await audit(page, "paths-desktop"));
+
+    await page.goto(`${BASE_URL}/progress`, { waitUntil: "networkidle" });
+    findings.push(...await audit(page, "progress-desktop"));
+
     await page.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
     await page.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
     findings.push(...await audit(page, "workspace-desktop"));
@@ -51,6 +57,12 @@ async function main() {
 
     await page.goto(BASE_URL, { waitUntil: "networkidle" });
     findings.push(...await audit(page, "catalog-desktop-dark"));
+
+    await page.goto(`${BASE_URL}/paths`, { waitUntil: "networkidle" });
+    findings.push(...await audit(page, "paths-desktop-dark"));
+
+    await page.goto(`${BASE_URL}/progress`, { waitUntil: "networkidle" });
+    findings.push(...await audit(page, "progress-desktop-dark"));
 
     const severe = findings.filter((finding) => finding.impact === "critical" || finding.impact === "serious");
     console.log(JSON.stringify({ violations: findings, severeCount: severe.length }, null, 2));

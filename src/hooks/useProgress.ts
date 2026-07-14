@@ -15,7 +15,7 @@ export function useProgress() {
   const sets = useMemo(
     () => ({
       solved: new Set(progress.solved),
-      attempted: new Set(progress.attempted),
+      attempted: new Set([...progress.attempted, ...progress.solved]),
       starred: new Set(progress.starred)
     }),
     [progress]
@@ -46,12 +46,18 @@ export function useProgress() {
   };
 
   const toggleSolved = (slug: string) => {
-    setProgress((current) => ({
-      ...current,
-      solved: current.solved.includes(slug)
-        ? current.solved.filter((item) => item !== slug)
-        : [...current.solved, slug]
-    }));
+    setProgress((current) => {
+      const isSolved = current.solved.includes(slug);
+      return {
+        ...current,
+        solved: isSolved
+          ? current.solved.filter((item) => item !== slug)
+          : [...current.solved, slug],
+        attempted: isSolved || current.attempted.includes(slug)
+          ? current.attempted
+          : [...current.attempted, slug]
+      };
+    });
   };
 
   return { ...sets, toggleStarred, markAttempted, markSolved, toggleSolved };
