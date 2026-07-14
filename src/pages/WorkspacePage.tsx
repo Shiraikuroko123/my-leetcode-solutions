@@ -15,7 +15,8 @@ import {
   RotateCcw,
   Star,
   Terminal,
-  TriangleAlert
+  TriangleAlert,
+  Undo2
 } from "lucide-react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AIAssistant } from "../components/AIAssistant";
@@ -43,6 +44,10 @@ function genericStarter(language: Language, title: string) {
   return `// ${title}\n// 打开左侧官方题面，根据函数签名完成代码。\n\n#include <iostream>\nusing namespace std;\n\nclass Solution {\npublic:\n    // TODO: implement\n};\n\nint main() {\n    cout << "请补充测试用例\\n";\n}\n`;
 }
 
+function draftKey(slug: string, language: Language) {
+  return `algonote-draft:${slug}:${language}`;
+}
+
 export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
   const { slug = "" } = useParams();
   const navigate = useNavigate();
@@ -62,7 +67,9 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
   const [runError, setRunError] = useState("");
   const [running, setRunning] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [referenceMode, setReferenceMode] = useState(false);
   const solutionRequestId = useRef(0);
+  const loadedDraftKey = useRef("");
 
   const index = useMemo(() => problems.findIndex((item) => item.slug === slug), [slug]);
   const previous = index > 0 ? problems[index - 1] : undefined;
@@ -72,9 +79,14 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
 
   useEffect(() => {
     if (!problem) return;
-    const draftKey = `algonote-draft:${problem.slug}:${language}`;
-    const saved = window.localStorage.getItem(draftKey);
-    setCode(saved || featured?.starterCode[language] || genericStarter(language, problem.title));
+    const key = draftKey(problem.slug, language);
+    const starter = featured?.starterCode[language] || genericStarter(language, problem.title);
+    const saved = window.localStorage.getItem(key);
+    const contaminatedByReference = Boolean(saved && featured && saved === featured.solutionCode[language]);
+    loadedDraftKey.current = key;
+    setReferenceMode(false);
+    setCode(contaminatedByReference ? starter : saved || starter);
+    if (contaminatedByReference) window.localStorage.setItem(key, starter);
     setRunResult(null);
     setRunError("");
     setExternalSolution(null);
@@ -88,15 +100,18 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
     setProblemTab("description");
     setMobileTab("problem");
     setRevealedHints(0);
+    setAssistantOpen(false);
   }, [slug]);
 
   useEffect(() => {
-    if (!problem || !code) return;
+    if (!problem || !code || referenceMode) return;
+    const key = draftKey(problem.slug, language);
+    if (loadedDraftKey.current !== key) return;
     const timeout = window.setTimeout(() => {
-      window.localStorage.setItem(`algonote-draft:${problem.slug}:${language}`, code);
+      window.localStorage.setItem(key, code);
     }, 300);
     return () => window.clearTimeout(timeout);
-  }, [code, language, problem]);
+  }, [code, language, problem, referenceMode]);
 
   if (!problem) {
     return (
@@ -114,6 +129,8 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
   const resetCode = () => {
     const starter = featured?.starterCode[language] || genericStarter(language, problem.title);
     if (code !== starter && !window.confirm("重置会覆盖当前编辑器内容，是否继续？")) return;
+    loadedDraftKey.current = draftKey(problem.slug, language);
+    setReferenceMode(false);
     setCode(starter);
     setRunResult(null);
     setRunError("");
@@ -157,9 +174,23 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
   const loadReferenceIntoEditor = () => {
     const reference = featured?.solutionCode[language] || externalSolution?.code;
     if (!reference) return;
-    if (!window.confirm("加载参考答案会覆盖当前代码，是否继续？")) return;
+    if (!window.confirm("参考实现会临时替换编辑器显示。你的代码会保留，参考实现不会自动保存，是否继续？")) return;
+    if (!referenceMode) window.localStorage.setItem(draftKey(problem.slug, language), code);
+    setReferenceMode(true);
     setCode(reference);
+    setRunResult(null);
+    setRunError("");
     setMobileTab("code");
+  };
+
+  const restoreMyCode = () => {
+    const key = draftKey(problem.slug, language);
+    const starter = featured?.starterCode[language] || genericStarter(language, problem.title);
+    loadedDraftKey.current = key;
+    setReferenceMode(false);
+    setCode(window.localStorage.getItem(key) || starter);
+    setRunResult(null);
+    setRunError("");
   };
 
   const navigateProblem = (targetSlug?: string) => {
@@ -325,7 +356,18 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
               <button className={language === "cpp" ? "is-active" : ""} type="button" onClick={() => changeLanguage("cpp")}>C++</button>
             </div>
             <div className="editor-actions">
-              <span className="draft-status"><Check size={13} />自动保存</span>
+              {referenceMode ? (
+                <span className="draft-status draft-status--reference">
+                  <FileCode2 size={13} />
+                  <span className="draft-status-long">参考实现 · 不自动保存</span>
+                  <span className="draft-status-short">参考 · 不保存</span>
+                </span>
+              ) : (
+                <span className="draft-status"><Check size={13} />自动保存</span>
+              )}
+              {referenceMode && (
+                <button className="icon-button icon-button--editor" type="button" onClick={restoreMyCode} title="返回我的代码" aria-label="返回我的代码"><Undo2 size={16} /></button>
+              )}
               <button className="icon-button icon-button--editor" type="button" onClick={resetCode} title="重置代码" aria-label="重置代码"><RotateCcw size={16} /></button>
               <button className="run-button" type="button" disabled={running} onClick={() => void execute()}>
                 {running ? <LoaderCircle className="spin" size={16} /> : <Play size={16} fill="currentColor" />}运行
@@ -356,7 +398,7 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
         </section>
       </main>
 
-      <AIAssistant open={assistantOpen} onClose={() => setAssistantOpen(false)} problem={problem} summary={featured?.summary || []} language={language} code={code} />
+      <AIAssistant key={problem.slug} open={assistantOpen} onClose={() => setAssistantOpen(false)} problem={problem} summary={featured?.summary || []} language={language} code={code} />
       {assistantOpen && <button className="drawer-backdrop" type="button" onClick={() => setAssistantOpen(false)} aria-label="关闭助教" />}
     </div>
   );

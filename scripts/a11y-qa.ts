@@ -36,9 +36,18 @@ async function main() {
     await page.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
     findings.push(...await audit(page, "workspace-desktop"));
 
+    await page.getByRole("button", { name: "问助教" }).click();
+    await page.waitForTimeout(300);
+    findings.push(...await audit(page, "assistant-desktop"));
+    await page.getByTitle("关闭助教").click();
+
     await page.getByRole("button", { name: "切换深色主题" }).click();
     await page.waitForTimeout(300);
     findings.push(...await audit(page, "workspace-desktop-dark"));
+    await page.getByRole("button", { name: "问助教" }).click();
+    await page.waitForTimeout(300);
+    findings.push(...await audit(page, "assistant-desktop-dark"));
+    await page.getByTitle("关闭助教").click();
 
     await page.goto(BASE_URL, { waitUntil: "networkidle" });
     findings.push(...await audit(page, "catalog-desktop-dark"));

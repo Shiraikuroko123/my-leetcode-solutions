@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Router } from "express";
 import OpenAI from "openai";
 import { z } from "zod";
+import { REASONING_EFFORTS, resolveOpenAIApiKey, resolveReasoningConfig } from "../openaiConfig";
 import { createRateLimiter } from "../rateLimit";
 
 const router = Router();
@@ -10,6 +11,7 @@ const requestSchema = z.object({
   message: z.string().min(1).max(4_000),
   code: z.string().max(30_000).default(""),
   language: z.enum(["python", "cpp"]),
+  reasoningEffort: z.enum(REASONING_EFFORTS).optional(),
   problem: z.object({
     id: z.string().max(20),
     title: z.string().max(200),
@@ -27,13 +29,24 @@ router.post("/", createRateLimiter(12, 60_000), async (request, response) => {
     return;
   }
 
-  if (!process.env.OPENAI_API_KEY) {
-    response.status(503).json({ error: "AI 助教尚未配置。请在服务端设置 OPENAI_API_KEY。", code: "AI_NOT_CONFIGURED" });
+  const { supportedEfforts, defaultEffort } = resolveReasoningConfig();
+  const reasoningEffort = parsed.data.reasoningEffort ?? defaultEffort;
+  if (!supportedEfforts.includes(reasoningEffort)) {
+    response.status(400).json({
+      error: `当前服务不支持推理强度 ${reasoningEffort}。`,
+      supportedEfforts
+    });
+    return;
+  }
+
+  const apiKey = resolveOpenAIApiKey();
+  if (!apiKey) {
+    response.status(503).json({ error: "AI 助教尚未配置。请在服务端设置 ALGONOTE_OPENAI_API_KEY 或 OPENAI_API_KEY。", code: "AI_NOT_CONFIGURED" });
     return;
   }
 
   const { message, code, language, problem } = parsed.data;
-  const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const client = new OpenAI({ apiKey, baseURL: process.env.OPENAI_BASE_URL });
   const rawSession = String(request.header("x-session-id") || request.ip || "anonymous");
   const safetyIdentifier = createHash("sha256")
     .update(`${process.env.OPENAI_SAFETY_SALT || "algonote"}:${rawSession}`)
@@ -54,7 +67,7 @@ router.post("/", createRateLimiter(12, 60_000), async (request, response) => {
       model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
       store: false,
       safety_identifier: safetyIdentifier,
-      reasoning: { effort: "low" },
+      reasoning: { effort: reasoningEffort as OpenAI.ReasoningEffort },
       text: { verbosity: "medium" },
       input: [
         {
@@ -65,7 +78,11 @@ router.post("/", createRateLimiter(12, 60_000), async (request, response) => {
       ]
     });
 
-    response.json({ answer: result.output_text, model: process.env.OPENAI_MODEL || "gpt-5.6-luna" });
+    response.json({
+      answer: result.output_text,
+      model: process.env.OPENAI_MODEL || "gpt-5.6-luna",
+      reasoningEffort
+    });
   } catch (error) {
     const messageText = error instanceof Error ? error.message : "Unknown OpenAI error";
     console.error("AI tutor request failed:", messageText);

@@ -25,9 +25,9 @@ AlgoNote 是一个面向中文算法学习者的 Python / C++ 刷题工作台。
 - 按题号、中英文题名、标签和难度检索
 - Monaco Python / C++ 编辑器，本地草稿自动保存
 - 自建 Piston 沙箱执行代码，限制运行时间、内存、输入和源码大小
-- 原创题解按“提示 -> 思路 -> 标准实现”渐进揭示
+- 原创题解按“提示 -> 思路 -> 标准实现”渐进揭示，进入题目时不自动展示答案
 - MIT 第三方实现按真实语言覆盖读取并显示来源
-- OpenAI Responses API 驱动的中文算法助教
+- OpenAI Responses API 驱动的中文算法助教，可在网页内调节推理强度
 - 收藏、尝试、完成状态保存在浏览器本地
 - 浅色/深色主题，以及桌面双列和移动三标签工作台
 
@@ -70,12 +70,18 @@ npm run dev
 | `PORT` | Express 端口，默认 `8787` |
 | `HOST` | 监听地址；本机默认 `127.0.0.1`，容器内可用 `0.0.0.0` |
 | `PISTON_URL` | 私有 Piston API，默认 `http://127.0.0.1:2000/api/v2` |
+| `ALGONOTE_OPENAI_API_KEY` | 可选；本项目专用密钥，存在时优先于全局 `OPENAI_API_KEY` |
 | `OPENAI_API_KEY` | 可选；启用 AI 助教，必须只放在服务端 |
+| `OPENAI_BASE_URL` | 可选；OpenAI Responses 兼容服务地址，例如本地 CC Switch 提供方 |
 | `OPENAI_MODEL` | 助教模型，可按部署账户可用模型覆盖 |
+| `OPENAI_REASONING_EFFORTS` | 网页可选的推理强度，逗号分隔；默认 `low,medium,high,xhigh,max` |
+| `OPENAI_REASONING_DEFAULT` | 默认推理强度，必须包含在上述列表中；默认 `medium` |
 | `OPENAI_SAFETY_SALT` | 生成匿名安全标识的服务端随机密钥 |
 | `GITHUB_TOKEN` | 可选；提高题解同步和 Contents API 回退的 GitHub 限额 |
 
-AI 助教只在用户主动发送消息时接收当前题目摘要、当前代码和提问。不要把密钥写入 `VITE_*` 变量，也不要提交 `.env`。
+AI 助教只在用户主动发送消息时接收当前题目摘要、当前代码和提问。推理强度选择保存在当前浏览器；`ultra` 是部分兼容服务的扩展档位，只有服务端在 `OPENAI_REASONING_EFFORTS` 中明确配置后才会显示。不要把密钥写入 `VITE_*` 变量，也不要提交 `.env`。
+
+进入练习页只显示题面和起始代码。提示、题解、参考实现和 AI 回答都需要用户主动操作；参考实现加载到编辑器后不会覆盖自动保存的个人草稿，可随时点击“返回我的代码”。
 
 ## 数据同步
 

@@ -1,5 +1,16 @@
 import type { CatalogProblem, Language, RunResult } from "../types/problem";
 
+export const REASONING_EFFORTS = ["low", "medium", "high", "xhigh", "max", "ultra"] as const;
+export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
+
+export type AppConfig = {
+  aiEnabled: boolean;
+  reasoningEfforts: ReasoningEffort[];
+  reasoningDefault: ReasoningEffort;
+  runnerEnabled: boolean;
+  catalogTotal: number;
+};
+
 async function parseResponse<T>(response: Response): Promise<T> {
   const payload = (await response.json()) as T & { error?: string };
   if (!response.ok) throw new Error(payload.error || `Request failed: ${response.status}`);
@@ -28,6 +39,11 @@ export async function fetchExternalSolution(slug: string, language: Language) {
   return parseResponse<ExternalSolution>(response);
 }
 
+export async function fetchAppConfig() {
+  const response = await fetch("/api/config");
+  return parseResponse<AppConfig>(response);
+}
+
 export async function askTutor(options: {
   message: string;
   code: string;
@@ -35,6 +51,7 @@ export async function askTutor(options: {
   problem: CatalogProblem;
   summary: string[];
   sessionId: string;
+  reasoningEffort: ReasoningEffort;
 }) {
   const response = await fetch("/api/assistant", {
     method: "POST",
@@ -43,6 +60,7 @@ export async function askTutor(options: {
       message: options.message,
       code: options.code,
       language: options.language,
+      reasoningEffort: options.reasoningEffort,
       problem: {
         id: options.problem.id,
         title: options.problem.title,
@@ -53,5 +71,5 @@ export async function askTutor(options: {
       }
     })
   });
-  return parseResponse<{ answer: string; model: string }>(response);
+  return parseResponse<{ answer: string; model: string; reasoningEffort: ReasoningEffort }>(response);
 }

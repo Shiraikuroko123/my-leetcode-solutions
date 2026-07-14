@@ -51,15 +51,39 @@ async function main() {
   await desktopPage.waitForLoadState("networkidle");
   await desktopPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
   await desktopPage.locator(".monaco-editor").waitFor({ state: "visible", timeout: 30_000 });
+  await desktopPage.waitForTimeout(400);
+  assert(
+    await desktopPage.evaluate(() => window.localStorage.getItem("algonote-draft:two-sum:python")) === featuredProblems["two-sum"]?.starterCode.python,
+    "Initial workspace should save starter code, not the reference answer"
+  );
   await desktopPage.screenshot({ path: path.join(OUTPUT, "workspace-desktop.png") });
   const desktopWorkspace = await layoutMetrics(desktopPage);
   assert(desktopWorkspace.bodyWidth <= desktopWorkspace.viewportWidth, "Desktop workspace has horizontal overflow");
+  await desktopPage.getByRole("button", { name: "问助教" }).click();
+  await desktopPage.getByText("从思路开始，不急着看答案").waitFor();
+  await desktopPage.waitForTimeout(300);
+  const desktopReasoning = desktopPage.getByRole("combobox", { name: "推理强度" });
+  await desktopReasoning.selectOption("high");
+  assert(await desktopReasoning.inputValue() === "high", "Reasoning selector should accept a supported effort");
+  await desktopPage.screenshot({ path: path.join(OUTPUT, "assistant-desktop.png") });
+  await desktopPage.getByTitle("关闭助教").click();
+  await desktopPage.getByRole("button", { name: "问助教" }).click();
+  assert(await desktopReasoning.inputValue() === "high", "Reasoning selector should persist after reopening the drawer");
+  await desktopPage.getByTitle("关闭助教").click();
   await desktopPage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
   await desktopPage.getByRole("button", { name: "查看参考题解" }).click();
   await desktopPage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
+  await desktopPage.getByText("参考实现 · 不自动保存").waitFor();
+  await desktopPage.waitForTimeout(400);
+  assert(
+    await desktopPage.evaluate(() => window.localStorage.getItem("algonote-draft:two-sum:python")) === featuredProblems["two-sum"]?.starterCode.python,
+    "Reference code must not overwrite the user's saved draft"
+  );
   await desktopPage.getByRole("button", { name: "运行", exact: true }).click();
   await desktopPage.locator(".console-stdout").getByText("3/3 tests passed", { exact: false }).waitFor({ timeout: 30_000 });
   await desktopPage.screenshot({ path: path.join(OUTPUT, "workspace-run-desktop.png") });
+  await desktopPage.getByRole("button", { name: "返回我的代码" }).click();
+  await desktopPage.getByText("自动保存").waitFor();
   await desktop.close();
 
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 1 });
@@ -76,6 +100,13 @@ async function main() {
   await mobilePage.waitForLoadState("networkidle");
   await mobilePage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
   await mobilePage.screenshot({ path: path.join(OUTPUT, "workspace-mobile-problem.png") });
+  await mobilePage.getByRole("button", { name: "问助教" }).click();
+  await mobilePage.getByRole("combobox", { name: "推理强度" }).waitFor();
+  await mobilePage.waitForTimeout(300);
+  await mobilePage.screenshot({ path: path.join(OUTPUT, "assistant-mobile.png") });
+  const mobileAssistant = await layoutMetrics(mobilePage);
+  assert(mobileAssistant.bodyWidth <= mobileAssistant.viewportWidth, "Mobile assistant has horizontal overflow");
+  await mobilePage.getByTitle("关闭助教").click();
   await mobilePage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
   await mobilePage.getByRole("button", { name: "查看参考题解" }).click();
   await mobilePage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
@@ -85,14 +116,42 @@ async function main() {
   await mobilePage.getByRole("button", { name: "运行", exact: true }).click();
   await mobilePage.locator(".console-stdout").getByText("3/3 tests passed", { exact: false }).waitFor({ timeout: 30_000 });
   await mobilePage.screenshot({ path: path.join(OUTPUT, "workspace-mobile-result.png") });
+  await mobilePage.getByRole("tab", { name: "代码", exact: true }).click();
+  await mobilePage.getByRole("button", { name: "返回我的代码" }).click();
   const mobileWorkspace = await layoutMetrics(mobilePage);
   assert(mobileWorkspace.bodyWidth <= mobileWorkspace.viewportWidth, "Mobile workspace has horizontal overflow");
   await mobile.close();
 
+  const compact = await browser.newContext({ viewport: { width: 320, height: 720 }, deviceScaleFactor: 1 });
+  const compactPage = await compact.newPage();
+  const compactErrors = await collectErrors(compactPage);
+  compactPage.on("dialog", (dialog) => void dialog.accept());
+  await compactPage.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
+  await compactPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
+  await compactPage.getByRole("button", { name: "问助教" }).click();
+  await compactPage.waitForTimeout(300);
+  const compactDrawer = await compactPage.locator(".assistant-drawer").boundingBox();
+  assert(Boolean(compactDrawer && compactDrawer.x === 0 && compactDrawer.width === 320), "320px assistant should fill the viewport");
+  await compactPage.screenshot({ path: path.join(OUTPUT, "assistant-compact.png") });
+  await compactPage.getByTitle("关闭助教").click();
+  await compactPage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
+  await compactPage.getByRole("button", { name: "查看参考题解" }).click();
+  await compactPage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
+  await compactPage.getByText("参考 · 不保存").waitFor();
+  const compactRunButton = await compactPage.getByRole("button", { name: "运行", exact: true }).boundingBox();
+  await compactPage.screenshot({ path: path.join(OUTPUT, "workspace-compact-code.png") });
+  assert(
+    Boolean(compactRunButton && compactRunButton.x + compactRunButton.width <= 320),
+    `320px run button should remain fully visible: ${JSON.stringify(compactRunButton)}`
+  );
+  const compactWorkspace = await layoutMetrics(compactPage);
+  assert(compactWorkspace.bodyWidth <= compactWorkspace.viewportWidth, "320px workspace has horizontal overflow");
+  await compact.close();
+
   await browser.close();
-  const errors = [...desktopErrors, ...mobileErrors];
+  const errors = [...desktopErrors, ...mobileErrors, ...compactErrors];
   assert(errors.length === 0, `Browser console errors:\n${errors.join("\n")}`);
-  console.log(JSON.stringify({ desktopCatalog, desktopWorkspace, mobileCatalog, mobileWorkspace, screenshots: OUTPUT }, null, 2));
+  console.log(JSON.stringify({ desktopCatalog, desktopWorkspace, mobileCatalog, mobileAssistant, mobileWorkspace, compactWorkspace, screenshots: OUTPUT }, null, 2));
   } finally {
     await browser.close().catch(() => undefined);
   }

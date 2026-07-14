@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import express from "express";
 import helmet from "helmet";
 import { serverCatalog } from "./catalog";
+import { resolveOpenAIApiKey, resolveReasoningConfig } from "./openaiConfig";
 import assistantRouter from "./routes/assistant";
 import runnerRouter from "./routes/runner";
 import solutionsRouter from "./routes/solutions";
@@ -36,8 +37,11 @@ export function createApp() {
   });
 
   app.get("/api/config", (_request, response) => {
+    const reasoning = resolveReasoningConfig();
     response.json({
-      aiEnabled: Boolean(process.env.OPENAI_API_KEY),
+      aiEnabled: Boolean(resolveOpenAIApiKey()),
+      reasoningEfforts: reasoning.supportedEfforts,
+      reasoningDefault: reasoning.defaultEffort,
       runnerEnabled: true,
       catalogTotal: serverCatalog.total,
       catalogSyncedAt: serverCatalog.syncedAt,

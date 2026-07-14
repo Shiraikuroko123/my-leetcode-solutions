@@ -1230,6 +1230,14 @@ a {
   white-space: nowrap;
 }
 
+.draft-status--reference {
+  color: oklch(0.78 0.12 80);
+}
+
+.draft-status-short {
+  display: none;
+}
+
 .icon-button--editor {
   color: oklch(0.72 0.01 260);
 }
@@ -1241,6 +1249,7 @@ a {
 
 .run-button {
   min-height: 30px;
+  flex: 0 0 auto;
   padding: 6px 11px;
 }
 
@@ -1360,17 +1369,24 @@ a {
 
 .assistant-header {
   display: flex;
-  min-height: 66px;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 12px 10px 16px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  padding: 10px 12px 11px 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
 }
 
-.assistant-header > div {
+.assistant-header-row {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.assistant-heading {
+  display: flex;
+  min-width: 0;
   flex-direction: column;
 }
 
@@ -1390,6 +1406,47 @@ a {
   margin-top: 1px;
   color: var(--color-faint);
   font-size: 10px;
+}
+
+.assistant-reasoning {
+  display: flex;
+  min-height: 34px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 6px 4px 9px;
+  color: var(--color-muted);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+}
+
+.assistant-reasoning > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 650;
+}
+
+.assistant-reasoning > span svg {
+  color: var(--color-accent);
+}
+
+.assistant-reasoning select {
+  min-width: 88px;
+  height: 26px;
+  padding: 0 24px 0 8px;
+  color: var(--color-ink-strong);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  outline: 0;
+  font-size: 12px;
+}
+
+.assistant-reasoning select:focus-visible {
+  border-color: var(--color-accent);
 }
 
 .assistant-messages {
@@ -1851,6 +1908,36 @@ a {
 
   .assistant-drawer {
     width: 100vw;
+  }
+}
+
+@media (max-width: 430px) {
+  .editor-toolbar {
+    gap: 6px;
+    padding-inline: 4px;
+  }
+
+  .draft-status-long {
+    display: none;
+  }
+
+  .draft-status-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 380px) {
+  .draft-status:not(.draft-status--reference) {
+    display: none;
+  }
+
+  .draft-status--reference ~ button[title="重置代码"] {
+    display: none;
+  }
+
+  .run-button {
+    gap: 4px;
+    padding-inline: 8px;
   }
 }
 
