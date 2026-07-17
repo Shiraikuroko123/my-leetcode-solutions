@@ -21,11 +21,55 @@ async function collectErrors(page: Page) {
 
 async function layoutMetrics(page: Page) {
   return page.evaluate(() => ({
+    htmlWidth: document.documentElement.scrollWidth,
     bodyWidth: document.body.scrollWidth,
+    rootWidth: document.querySelector<HTMLElement>("#root")?.scrollWidth ?? 0,
     viewportWidth: window.innerWidth,
     bodyHeight: document.body.scrollHeight,
     viewportHeight: window.innerHeight
   }));
+}
+
+type LayoutMetrics = Awaited<ReturnType<typeof layoutMetrics>>;
+
+function assertNoPageOverflow(metrics: LayoutMetrics, label: string) {
+  const overflowingRoots = [
+    ["html", metrics.htmlWidth],
+    ["body", metrics.bodyWidth],
+    ["#root", metrics.rootWidth]
+  ].filter(([, width]) => Number(width) > metrics.viewportWidth);
+
+  assert(
+    overflowingRoots.length === 0,
+    `${label} has page-level horizontal overflow: ${JSON.stringify({ ...metrics, overflowingRoots })}`
+  );
+}
+
+async function tableLayout(page: Page) {
+  return page.locator(".problem-table-wrap").evaluate((wrapper) => {
+    const table = wrapper.querySelector(".problem-table");
+    const bounds = wrapper.getBoundingClientRect();
+    return {
+      clientWidth: wrapper.clientWidth,
+      scrollWidth: wrapper.scrollWidth,
+      left: bounds.left,
+      right: bounds.right,
+      tableDisplay: table ? window.getComputedStyle(table).display : "missing",
+      visibleAcceptanceCells: Array.from(wrapper.querySelectorAll("tbody .acceptance-column"))
+        .filter((cell) => window.getComputedStyle(cell).display !== "none").length
+    };
+  });
+}
+
+function assertStableBox(
+  before: Awaited<ReturnType<ReturnType<Page["locator"]>["boundingBox"]>>,
+  after: Awaited<ReturnType<ReturnType<Page["locator"]>["boundingBox"]>>,
+  label: string
+) {
+  assert(before && after, `${label} must remain visible`);
+  for (const key of ["x", "y", "width", "height"] as const) {
+    assert(Math.abs(before[key] - after[key]) < 0.5, `${label} shifted on ${key}: ${before[key]} -> ${after[key]}`);
+  }
 }
 
 async function main() {
@@ -49,7 +93,9 @@ async function main() {
   await desktopPage.goto(BASE_URL, { waitUntil: "networkidle" });
   await desktopPage.screenshot({ path: path.join(OUTPUT, "catalog-desktop.png"), fullPage: true });
   const desktopCatalog = await layoutMetrics(desktopPage);
-  assert(desktopCatalog.bodyWidth <= desktopCatalog.viewportWidth, "Desktop catalog has body-level horizontal overflow");
+  assertNoPageOverflow(desktopCatalog, "1440px catalog");
+  const desktopTable = await tableLayout(desktopPage);
+  assert(desktopTable.right <= desktopCatalog.viewportWidth, "Desktop table scroller must remain inside the viewport");
   assert(await desktopPage.locator("tbody tr").count() === 40, "Desktop catalog should render one 40-row page");
 
   await desktopPage.getByRole("link", { name: "学习路径", exact: true }).click();
@@ -58,7 +104,7 @@ async function main() {
   assert(await desktopPage.locator(".learning-path-row").count() === 10, "Learning-path view should render all ten paths");
   await desktopPage.screenshot({ path: path.join(OUTPUT, "paths-desktop.png"), fullPage: true });
   const desktopPaths = await layoutMetrics(desktopPage);
-  assert(desktopPaths.bodyWidth <= desktopPaths.viewportWidth, "Desktop learning paths have body-level horizontal overflow");
+  assertNoPageOverflow(desktopPaths, "1440px learning paths");
 
   await Promise.all([
     desktopPage.waitForURL((url) => url.pathname === "/"),
@@ -79,7 +125,7 @@ async function main() {
   await desktopPage.getByRole("navigation", { name: "练习状态筛选" }).waitFor({ state: "visible" });
   await desktopPage.screenshot({ path: path.join(OUTPUT, "progress-desktop.png"), fullPage: true });
   const desktopProgress = await layoutMetrics(desktopPage);
-  assert(desktopProgress.bodyWidth <= desktopProgress.viewportWidth, "Desktop progress has body-level horizontal overflow");
+  assertNoPageOverflow(desktopProgress, "1440px progress");
   await Promise.all([
     desktopPage.waitForURL((url) => url.pathname === "/"),
     desktopPage.goBack()
@@ -100,7 +146,7 @@ async function main() {
   );
   await desktopPage.screenshot({ path: path.join(OUTPUT, "workspace-desktop.png") });
   const desktopWorkspace = await layoutMetrics(desktopPage);
-  assert(desktopWorkspace.bodyWidth <= desktopWorkspace.viewportWidth, "Desktop workspace has horizontal overflow");
+  assertNoPageOverflow(desktopWorkspace, "1440px workspace");
   await desktopPage.getByRole("button", { name: "运行", exact: true }).click();
   await desktopPage.locator(".console-stdout").getByText("Test 1 error: NotImplementedError", { exact: false }).waitFor({ timeout: 30_000 });
   assert(!(await desktopPage.locator(".console-output").innerText()).includes("[0, 1]"), "Failed checks must not reveal an expected answer");
@@ -141,21 +187,29 @@ async function main() {
   await mobilePage.getByRole("heading", { level: 1, name: "按知识体系逐步练习" }).waitFor({ state: "visible" });
   assert(await mobilePage.locator(".learning-path-row").count() === 10, "Mobile learning-path view should render all ten paths");
   const mobilePaths = await layoutMetrics(mobilePage);
-  assert(mobilePaths.bodyWidth <= mobilePaths.viewportWidth, "Mobile learning paths have body-level horizontal overflow");
+  assertNoPageOverflow(mobilePaths, "390px learning paths");
   await mobilePage.screenshot({ path: path.join(OUTPUT, "paths-mobile.png"), fullPage: true });
   await mobilePage.getByRole("link", { name: "我的进度", exact: true }).click();
   await mobilePage.waitForURL((url) => url.pathname === "/progress");
   await mobilePage.getByRole("heading", { level: 1, name: "查看你的练习进度" }).waitFor({ state: "visible" });
   const mobileProgress = await layoutMetrics(mobilePage);
-  assert(mobileProgress.bodyWidth <= mobileProgress.viewportWidth, "Mobile progress has body-level horizontal overflow");
+  assertNoPageOverflow(mobileProgress, "390px progress");
   await mobilePage.screenshot({ path: path.join(OUTPUT, "progress-mobile.png"), fullPage: true });
   await mobilePage.getByRole("link", { name: "题库", exact: true }).click();
   await mobilePage.waitForURL((url) => url.pathname === "/");
+  await mobilePage.getByRole("heading", { level: 1, name: "建立你的算法解题系统" }).waitFor({ state: "visible" });
   await mobilePage.getByRole("textbox", { name: "搜索题目" }).fill("两数之和");
-  await mobilePage.waitForTimeout(250);
+  await mobilePage.waitForFunction(() => {
+    const rowCount = document.querySelectorAll(".problem-table tbody tr").length;
+    return rowCount > 0 && rowCount < 40;
+  });
   await mobilePage.screenshot({ path: path.join(OUTPUT, "catalog-mobile.png"), fullPage: true });
   const mobileCatalog = await layoutMetrics(mobilePage);
-  assert(mobileCatalog.bodyWidth <= mobileCatalog.viewportWidth, "Mobile catalog has body-level horizontal overflow");
+  assertNoPageOverflow(mobileCatalog, "390px catalog");
+  const mobileTable = await tableLayout(mobilePage);
+  assert(mobileTable.tableDisplay === "block", `390px table should use compact list layout: ${JSON.stringify(mobileTable)}`);
+  assert(mobileTable.visibleAcceptanceCells === 0, `390px compact list should hide acceptance cells: ${JSON.stringify(mobileTable)}`);
+  assert(mobileTable.right <= mobileCatalog.viewportWidth, "390px table wrapper must remain inside the viewport");
   await mobilePage.locator(".problem-title-link").first().click();
   await mobilePage.waitForLoadState("networkidle");
   await mobilePage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
@@ -165,7 +219,7 @@ async function main() {
   await mobilePage.waitForTimeout(300);
   await mobilePage.screenshot({ path: path.join(OUTPUT, "assistant-mobile.png") });
   const mobileAssistant = await layoutMetrics(mobilePage);
-  assert(mobileAssistant.bodyWidth <= mobileAssistant.viewportWidth, "Mobile assistant has horizontal overflow");
+  assertNoPageOverflow(mobileAssistant, "390px assistant");
   await mobilePage.getByTitle("关闭助教").click();
   await mobilePage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
   await mobilePage.getByRole("button", { name: "查看参考题解" }).click();
@@ -179,49 +233,138 @@ async function main() {
   await mobilePage.getByRole("tab", { name: "代码", exact: true }).click();
   await mobilePage.getByRole("button", { name: "返回我的代码" }).click();
   const mobileWorkspace = await layoutMetrics(mobilePage);
-  assert(mobileWorkspace.bodyWidth <= mobileWorkspace.viewportWidth, "Mobile workspace has horizontal overflow");
+  assertNoPageOverflow(mobileWorkspace, "390px workspace");
   await mobile.close();
 
-  const compact = await browser.newContext({ viewport: { width: 320, height: 720 }, deviceScaleFactor: 1 });
-  const compactPage = await compact.newPage();
-  const compactErrors = await collectErrors(compactPage);
-  compactPage.on("dialog", (dialog) => void dialog.accept());
-  await compactPage.goto(BASE_URL, { waitUntil: "networkidle" });
-  await compactPage.getByRole("link", { name: "学习路径", exact: true }).click();
-  await compactPage.getByRole("heading", { level: 1, name: "按知识体系逐步练习" }).waitFor({ state: "visible" });
-  const compactPaths = await layoutMetrics(compactPage);
-  assert(compactPaths.bodyWidth <= compactPaths.viewportWidth, "320px learning paths have body-level horizontal overflow");
-  await compactPage.getByRole("link", { name: "我的进度", exact: true }).click();
-  await compactPage.getByRole("heading", { level: 1, name: "查看你的练习进度" }).waitFor({ state: "visible" });
-  const compactProgress = await layoutMetrics(compactPage);
-  assert(compactProgress.bodyWidth <= compactProgress.viewportWidth, "320px progress has body-level horizontal overflow");
-  await compactPage.screenshot({ path: path.join(OUTPUT, "progress-compact.png"), fullPage: true });
-  await compactPage.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
-  await compactPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
-  await compactPage.getByRole("button", { name: "问助教" }).click();
-  await compactPage.waitForTimeout(300);
-  const compactDrawer = await compactPage.locator(".assistant-drawer").boundingBox();
-  assert(Boolean(compactDrawer && compactDrawer.x === 0 && compactDrawer.width === 320), "320px assistant should fill the viewport");
-  await compactPage.screenshot({ path: path.join(OUTPUT, "assistant-compact.png") });
-  await compactPage.getByTitle("关闭助教").click();
-  await compactPage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
-  await compactPage.getByRole("button", { name: "查看参考题解" }).click();
-  await compactPage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
-  await compactPage.getByText("参考 · 不保存").waitFor();
-  const compactRunButton = await compactPage.getByRole("button", { name: "运行", exact: true }).boundingBox();
-  await compactPage.screenshot({ path: path.join(OUTPUT, "workspace-compact-code.png") });
+  const tablet = await browser.newContext({ viewport: { width: 768, height: 1024 }, deviceScaleFactor: 1 });
+  const tabletPage = await tablet.newPage();
+  const tabletErrors = await collectErrors(tabletPage);
+  await tabletPage.goto(BASE_URL, { waitUntil: "networkidle" });
+  const tabletCatalog = await layoutMetrics(tabletPage);
+  assertNoPageOverflow(tabletCatalog, "768px catalog");
+  const tabletTable = await tableLayout(tabletPage);
+  assert(tabletTable.tableDisplay === "table", `768px table should retain its wide-table layout: ${JSON.stringify(tabletTable)}`);
+  assert(tabletTable.scrollWidth > tabletTable.clientWidth, `768px wide table should scroll locally: ${JSON.stringify(tabletTable)}`);
+  assert(tabletTable.right <= tabletCatalog.viewportWidth, "768px table scroller must remain inside the viewport");
+  await tabletPage.screenshot({ path: path.join(OUTPUT, "catalog-768.png"), fullPage: true });
+
+  await tabletPage.goto(`${BASE_URL}/paths`, { waitUntil: "networkidle" });
+  const tabletPaths = await layoutMetrics(tabletPage);
+  assertNoPageOverflow(tabletPaths, "768px learning paths");
+  await tabletPage.goto(`${BASE_URL}/progress`, { waitUntil: "networkidle" });
+  const tabletProgress = await layoutMetrics(tabletPage);
+  assertNoPageOverflow(tabletProgress, "768px progress");
+
+  await tabletPage.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
+  await tabletPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
+  for (const tabName of ["题目", "代码", "结果"]) {
+    await tabletPage.locator(".mobile-workspace-tabs").getByRole("tab", { name: tabName, exact: true }).click();
+    const visiblePanels = await tabletPage.locator(".problem-panel, .editor-panel, .console-panel").evaluateAll(
+      (panels) => panels.filter((panel) => window.getComputedStyle(panel).display !== "none").length
+    );
+    assert(visiblePanels === 1, `768px ${tabName} tab should show exactly one workspace panel`);
+  }
+  const tabletWorkspace = await layoutMetrics(tabletPage);
+  assertNoPageOverflow(tabletWorkspace, "768px workspace");
+  await tabletPage.screenshot({ path: path.join(OUTPUT, "workspace-768.png") });
+  await tablet.close();
+
+  const narrow = await browser.newContext({ viewport: { width: 375, height: 812 }, deviceScaleFactor: 1 });
+  const narrowPage = await narrow.newPage();
+  const narrowErrors = await collectErrors(narrowPage);
+  narrowPage.on("dialog", (dialog) => void dialog.accept());
+  await narrowPage.route("**/api/run", async (route) => {
+    await new Promise((resolve) => setTimeout(resolve, 700));
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({ stdout: "3/3 tests passed\n", stderr: "", code: 0, elapsedMs: 12 })
+    });
+  });
+  await narrowPage.goto(BASE_URL, { waitUntil: "networkidle" });
+  const narrowCatalog = await layoutMetrics(narrowPage);
+  assertNoPageOverflow(narrowCatalog, "375px catalog");
+  const narrowTable = await tableLayout(narrowPage);
+  assert(narrowTable.tableDisplay === "block", `375px table should use compact list layout: ${JSON.stringify(narrowTable)}`);
+  assert(narrowTable.visibleAcceptanceCells === 0, `375px compact list should hide acceptance cells: ${JSON.stringify(narrowTable)}`);
+  assert(narrowTable.right <= narrowCatalog.viewportWidth, "375px table wrapper must remain inside the viewport");
+  await narrowPage.screenshot({ path: path.join(OUTPUT, "catalog-375.png") });
+
+  await narrowPage.getByRole("link", { name: "学习路径", exact: true }).click();
+  await narrowPage.getByRole("heading", { level: 1, name: "按知识体系逐步练习" }).waitFor({ state: "visible" });
+  const narrowPaths = await layoutMetrics(narrowPage);
+  assertNoPageOverflow(narrowPaths, "375px learning paths");
+  await narrowPage.getByRole("link", { name: "我的进度", exact: true }).click();
+  await narrowPage.getByRole("heading", { level: 1, name: "查看你的练习进度" }).waitFor({ state: "visible" });
+  const narrowProgress = await layoutMetrics(narrowPage);
+  assertNoPageOverflow(narrowProgress, "375px progress");
+  await narrowPage.screenshot({ path: path.join(OUTPUT, "progress-375.png"), fullPage: true });
+
+  await narrowPage.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
+  await narrowPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
+  await narrowPage.getByRole("button", { name: "问助教" }).click();
+  await narrowPage.waitForTimeout(300);
+  const narrowDrawer = await narrowPage.locator(".assistant-drawer").boundingBox();
+  assert(Boolean(narrowDrawer && narrowDrawer.x === 0 && narrowDrawer.width === 375), "375px assistant should fill the viewport");
+  const narrowAssistant = await layoutMetrics(narrowPage);
+  assertNoPageOverflow(narrowAssistant, "375px assistant");
+  await narrowPage.screenshot({ path: path.join(OUTPUT, "assistant-375.png") });
+  await narrowPage.getByTitle("关闭助教").click();
+  await narrowPage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
+  await narrowPage.getByRole("button", { name: "查看参考题解" }).click();
+  await narrowPage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
+  await narrowPage.getByText("参考 · 不保存").waitFor();
+  await narrowPage.locator(".monaco-editor").waitFor({ state: "visible", timeout: 30_000 });
+
+  const narrowToolbarBefore = await narrowPage.locator(".editor-toolbar").boundingBox();
+  const narrowRunBefore = await narrowPage.getByRole("button", { name: "运行", exact: true }).boundingBox();
   assert(
-    Boolean(compactRunButton && compactRunButton.x + compactRunButton.width <= 320),
-    `320px run button should remain fully visible: ${JSON.stringify(compactRunButton)}`
+    Boolean(narrowRunBefore && narrowRunBefore.x + narrowRunBefore.width <= 375),
+    `375px run button should remain fully visible: ${JSON.stringify(narrowRunBefore)}`
   );
-  const compactWorkspace = await layoutMetrics(compactPage);
-  assert(compactWorkspace.bodyWidth <= compactWorkspace.viewportWidth, "320px workspace has horizontal overflow");
-  await compact.close();
+  await narrowPage.getByRole("button", { name: "运行", exact: true }).click();
+  await narrowPage.locator(".mobile-workspace-tabs").getByRole("tab", { name: "代码", exact: true }).click();
+  await narrowPage.waitForFunction(() => document.querySelector(".run-button")?.getAttribute("aria-busy") === "true");
+  const narrowToolbarRunning = await narrowPage.locator(".editor-toolbar").boundingBox();
+  const narrowRunRunning = await narrowPage.getByRole("button", { name: "运行", exact: true }).boundingBox();
+  assertStableBox(narrowToolbarBefore, narrowToolbarRunning, "375px Monaco toolbar while running");
+  assertStableBox(narrowRunBefore, narrowRunRunning, "375px run button while running");
+  await narrowPage.waitForFunction(() => document.querySelector(".run-button")?.getAttribute("aria-busy") === "false");
+  const narrowToolbarAfter = await narrowPage.locator(".editor-toolbar").boundingBox();
+  const narrowRunAfter = await narrowPage.getByRole("button", { name: "运行", exact: true }).boundingBox();
+  assertStableBox(narrowToolbarBefore, narrowToolbarAfter, "375px Monaco toolbar after running");
+  assertStableBox(narrowRunBefore, narrowRunAfter, "375px run button after running");
+  await narrowPage.locator(".mobile-workspace-tabs").getByRole("tab", { name: "结果", exact: true }).click();
+  await narrowPage.locator(".console-stdout").getByText("3/3 tests passed", { exact: false }).waitFor();
+  await narrowPage.screenshot({ path: path.join(OUTPUT, "workspace-375-result.png") });
+  const narrowWorkspace = await layoutMetrics(narrowPage);
+  assertNoPageOverflow(narrowWorkspace, "375px workspace");
+  await narrow.close();
 
   await browser.close();
-  const errors = [...desktopErrors, ...mobileErrors, ...compactErrors];
+  const errors = [...desktopErrors, ...mobileErrors, ...tabletErrors, ...narrowErrors];
   assert(errors.length === 0, `Browser console errors:\n${errors.join("\n")}`);
-  console.log(JSON.stringify({ desktopCatalog, desktopPaths, desktopProgress, desktopWorkspace, mobilePaths, mobileProgress, mobileCatalog, mobileAssistant, mobileWorkspace, compactPaths, compactProgress, compactWorkspace, screenshots: OUTPUT }, null, 2));
+  console.log(JSON.stringify({
+    desktopCatalog,
+    desktopPaths,
+    desktopProgress,
+    desktopWorkspace,
+    mobilePaths,
+    mobileProgress,
+    mobileCatalog,
+    mobileAssistant,
+    mobileWorkspace,
+    tabletCatalog,
+    tabletPaths,
+    tabletProgress,
+    tabletWorkspace,
+    narrowCatalog,
+    narrowPaths,
+    narrowProgress,
+    narrowAssistant,
+    narrowWorkspace,
+    screenshots: OUTPUT
+  }, null, 2));
   } finally {
     await browser.close().catch(() => undefined);
   }

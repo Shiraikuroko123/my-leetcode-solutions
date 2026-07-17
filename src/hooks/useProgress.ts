@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "./useLocalStorage";
 
 type ProgressState = {
@@ -21,31 +21,31 @@ export function useProgress() {
     [progress]
   );
 
-  const toggleStarred = (slug: string) => {
+  const toggleStarred = useCallback((slug: string) => {
     setProgress((current) => ({
       ...current,
       starred: current.starred.includes(slug)
         ? current.starred.filter((item) => item !== slug)
         : [...current.starred, slug]
     }));
-  };
+  }, [setProgress]);
 
-  const markAttempted = (slug: string) => {
+  const markAttempted = useCallback((slug: string) => {
     setProgress((current) => ({
       ...current,
       attempted: current.attempted.includes(slug) ? current.attempted : [...current.attempted, slug]
     }));
-  };
+  }, [setProgress]);
 
-  const markSolved = (slug: string) => {
+  const markSolved = useCallback((slug: string) => {
     setProgress((current) => ({
       ...current,
       solved: current.solved.includes(slug) ? current.solved : [...current.solved, slug],
       attempted: current.attempted.includes(slug) ? current.attempted : [...current.attempted, slug]
     }));
-  };
+  }, [setProgress]);
 
-  const toggleSolved = (slug: string) => {
+  const toggleSolved = useCallback((slug: string) => {
     setProgress((current) => {
       const isSolved = current.solved.includes(slug);
       return {
@@ -58,7 +58,9 @@ export function useProgress() {
           : [...current.attempted, slug]
       };
     });
-  };
+  }, [setProgress]);
 
   return { ...sets, toggleStarred, markAttempted, markSolved, toggleSolved };
 }
+
+export type ProgressController = ReturnType<typeof useProgress>;

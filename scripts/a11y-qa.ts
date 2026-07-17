@@ -64,6 +64,25 @@ async function main() {
     await page.goto(`${BASE_URL}/progress`, { waitUntil: "networkidle" });
     findings.push(...await audit(page, "progress-desktop-dark"));
 
+    const mobileContext = await browser.newContext({ viewport: { width: 375, height: 812 } });
+    const mobilePage = await mobileContext.newPage();
+    await mobilePage.goto(BASE_URL, { waitUntil: "networkidle" });
+    findings.push(...await audit(mobilePage, "catalog-375"));
+
+    await mobilePage.goto(`${BASE_URL}/paths`, { waitUntil: "networkidle" });
+    findings.push(...await audit(mobilePage, "paths-375"));
+
+    await mobilePage.goto(`${BASE_URL}/progress`, { waitUntil: "networkidle" });
+    findings.push(...await audit(mobilePage, "progress-375"));
+
+    await mobilePage.goto(`${BASE_URL}/problems/two-sum`, { waitUntil: "networkidle" });
+    await mobilePage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
+    findings.push(...await audit(mobilePage, "workspace-375"));
+    await mobilePage.getByRole("button", { name: "问助教" }).click();
+    await mobilePage.waitForTimeout(300);
+    findings.push(...await audit(mobilePage, "assistant-375"));
+    await mobileContext.close();
+
     const severe = findings.filter((finding) => finding.impact === "critical" || finding.impact === "serious");
     console.log(JSON.stringify({ violations: findings, severeCount: severe.length }, null, 2));
     if (severe.length) throw new Error(`Accessibility audit found ${severe.length} serious or critical violations`);

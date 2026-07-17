@@ -229,14 +229,16 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
         </div>
       </nav>
 
-      <div className="mobile-workspace-tabs" role="tablist" aria-label="练习区域">
-        <button role="tab" aria-selected={mobileTab === "problem"} className={mobileTab === "problem" ? "is-active" : ""} type="button" onClick={() => setMobileTab("problem")}>题目</button>
-        <button role="tab" aria-selected={mobileTab === "code"} className={mobileTab === "code" ? "is-active" : ""} type="button" onClick={() => setMobileTab("code")}>代码</button>
-        <button role="tab" aria-selected={mobileTab === "result"} className={mobileTab === "result" ? "is-active" : ""} type="button" onClick={() => setMobileTab("result")}>结果</button>
-      </div>
+      <nav className="mobile-workspace-tabs" aria-label="练习区域导航">
+        <div className="mobile-workspace-tablist" role="tablist" aria-label="练习区域">
+          <button id="workspace-tab-problem" role="tab" aria-controls="workspace-panel-problem" aria-selected={mobileTab === "problem"} className={mobileTab === "problem" ? "is-active" : ""} type="button" onClick={() => setMobileTab("problem")}>题目</button>
+          <button id="workspace-tab-code" role="tab" aria-controls="workspace-panel-code" aria-selected={mobileTab === "code"} className={mobileTab === "code" ? "is-active" : ""} type="button" onClick={() => setMobileTab("code")}>代码</button>
+          <button id="workspace-tab-result" role="tab" aria-controls="workspace-panel-result" aria-selected={mobileTab === "result"} className={mobileTab === "result" ? "is-active" : ""} type="button" onClick={() => setMobileTab("result")}>结果</button>
+        </div>
+      </nav>
 
       <main className={`workspace-grid mobile-show-${mobileTab}`}>
-        <section className="problem-panel">
+        <section id="workspace-panel-problem" className="problem-panel" role="tabpanel" aria-labelledby="workspace-tab-problem">
           <div className="panel-tabs" role="tablist">
             <button role="tab" aria-selected={problemTab === "description"} className={problemTab === "description" ? "is-active" : ""} type="button" onClick={() => setProblemTab("description")}>题目</button>
             <button role="tab" aria-selected={problemTab === "solution"} className={problemTab === "solution" ? "is-active" : ""} type="button" onClick={() => setProblemTab("solution")}>题解</button>
@@ -352,7 +354,7 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
           </div>
         </section>
 
-        <section className="editor-panel">
+        <section id="workspace-panel-code" className="editor-panel" role="tabpanel" aria-labelledby="workspace-tab-code">
           <div className="editor-toolbar">
             <div className="segmented-control segmented-control--dark" aria-label="编程语言">
               <button className={language === "python" ? "is-active" : ""} type="button" onClick={() => changeLanguage("python")}>Python</button>
@@ -368,11 +370,13 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
               ) : (
                 <span className="draft-status"><Check size={13} />自动保存</span>
               )}
-              {referenceMode && (
-                <button className="icon-button icon-button--editor" type="button" onClick={restoreMyCode} title="返回我的代码" aria-label="返回我的代码"><Undo2 size={16} /></button>
-              )}
+              <span className="restore-action-slot">
+                {referenceMode ? (
+                  <button className="icon-button icon-button--editor" type="button" onClick={restoreMyCode} title="返回我的代码" aria-label="返回我的代码"><Undo2 size={16} /></button>
+                ) : null}
+              </span>
               <button className="icon-button icon-button--editor" type="button" onClick={resetCode} title="重置代码" aria-label="重置代码"><RotateCcw size={16} /></button>
-              <button className="run-button" type="button" disabled={running} onClick={() => void execute()}>
+              <button className="run-button" type="button" disabled={running} aria-busy={running} onClick={() => void execute()}>
                 {running ? <LoaderCircle className="spin" size={16} /> : <Play size={16} fill="currentColor" />}运行
               </button>
             </div>
@@ -382,7 +386,7 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
           </div>
         </section>
 
-        <section className="console-panel">
+        <section id="workspace-panel-result" className="console-panel" role="tabpanel" aria-labelledby="workspace-tab-result">
           <div className="console-header">
             <span><Terminal size={15} />运行结果</span>
             {runResult && <small>{runResult.elapsedMs} ms · 退出码 {runResult.code ?? "-"}</small>}
