@@ -56,8 +56,30 @@ describe("AIAssistant", () => {
     expect(JSON.parse(String(assistantRequest?.[1]?.body))).toMatchObject({
       message: "只给我第一步提示",
       code: "# draft",
-      reasoningEffort: "ultra"
+      reasoningEffort: "ultra",
+      hintMode: "first-step"
     });
     expect(window.localStorage.getItem("algonote-reasoning-effort")).toBe(JSON.stringify("ultra"));
+  });
+
+  it("shows a useful error when the provider returns an empty non-JSON response", async () => {
+    vi.spyOn(globalThis, "fetch").mockImplementation(async (input) => {
+      if (String(input) === "/api/config") {
+        return new Response(JSON.stringify({
+          aiEnabled: true,
+          reasoningEfforts: ["low", "medium", "high"],
+          reasoningDefault: "medium",
+          runnerEnabled: true,
+          catalogTotal: 4_379
+        }), { status: 200, headers: { "content-type": "application/json" } });
+      }
+      return new Response("", { status: 502, statusText: "Bad Gateway" });
+    });
+
+    render(<AIAssistant open onClose={() => undefined} problem={problem} summary={[]} language="python" code="# draft" />);
+    fireEvent.click(await screen.findByRole("button", { name: "第一步提示" }));
+
+    expect(await screen.findByText(/HTTP 502/)).toBeInTheDocument();
+    expect(screen.getByText(/检查 AlgoNote API 与 CCSwitch/)).toBeInTheDocument();
   });
 });

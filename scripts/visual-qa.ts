@@ -91,6 +91,11 @@ async function main() {
   const desktopErrors = await collectErrors(desktopPage);
   desktopPage.on("dialog", (dialog) => void dialog.accept());
   await desktopPage.goto(BASE_URL, { waitUntil: "networkidle" });
+  await desktopPage.getByRole("heading", { level: 1, name: "看见题型之间的迁移路径" }).waitFor({ state: "visible" });
+  assert(await desktopPage.locator(".react-flow__node").count() === 10, "Algorithm map should render all ten learning paths");
+  await desktopPage.locator('.react-flow__node[data-id="dynamic-programming"]').click();
+  await desktopPage.locator(".atlas-selection-code").getByText("SELECT dynamic-programming", { exact: true }).waitFor();
+  assert(await desktopPage.locator(".algorithm-edge.is-active").count() >= 3, "Selecting a path should highlight its relations");
   await desktopPage.screenshot({ path: path.join(OUTPUT, "catalog-desktop.png"), fullPage: true });
   const desktopCatalog = await layoutMetrics(desktopPage);
   assertNoPageOverflow(desktopCatalog, "1440px catalog");
@@ -135,11 +140,12 @@ async function main() {
   await desktopPage.waitForTimeout(200);
   const featuredCount = Object.keys(featuredProblems).length;
   assert(await desktopPage.locator("tbody tr").count() === featuredCount, `Deep-solution filter should return ${featuredCount} rows`);
-  await desktopPage.getByRole("link", { name: /两数之和/ }).click();
+  await desktopPage.locator(".problem-title-link").filter({ hasText: "两数之和" }).click();
   await desktopPage.waitForLoadState("networkidle");
   await desktopPage.locator(".workspace-title span").waitFor({ state: "visible", timeout: 30_000 });
   await desktopPage.locator(".monaco-editor").waitFor({ state: "visible", timeout: 30_000 });
   await desktopPage.waitForTimeout(400);
+  assert(await desktopPage.locator(".solution-spectrum").count() === 0, "Solution comparison must stay hidden before answer unlock");
   assert(
     await desktopPage.evaluate(() => window.localStorage.getItem("algonote-draft:two-sum:python")) === featuredProblems["two-sum"]?.starterCode.python,
     "Initial workspace should save starter code, not the reference answer"
@@ -163,6 +169,10 @@ async function main() {
   await desktopPage.getByTitle("关闭助教").click();
   await desktopPage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
   await desktopPage.getByRole("button", { name: "查看参考题解" }).click();
+  await desktopPage.locator(".solution-spectrum").waitFor({ state: "visible" });
+  await desktopPage.getByRole("tab", { name: "排序双指针" }).click();
+  await desktopPage.locator(".solution-variant-detail").getByText("排序双指针", { exact: true }).waitFor();
+  await desktopPage.locator(".solution-spectrum").screenshot({ path: path.join(OUTPUT, "solution-spectrum-desktop.png") });
   await desktopPage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
   await desktopPage.getByText("参考实现 · 不自动保存").waitFor();
   await desktopPage.waitForTimeout(400);
@@ -197,7 +207,7 @@ async function main() {
   await mobilePage.screenshot({ path: path.join(OUTPUT, "progress-mobile.png"), fullPage: true });
   await mobilePage.getByRole("link", { name: "题库", exact: true }).click();
   await mobilePage.waitForURL((url) => url.pathname === "/");
-  await mobilePage.getByRole("heading", { level: 1, name: "建立你的算法解题系统" }).waitFor({ state: "visible" });
+  await mobilePage.getByRole("heading", { level: 1, name: "看见题型之间的迁移路径" }).waitFor({ state: "visible" });
   await mobilePage.getByRole("textbox", { name: "搜索题目" }).fill("两数之和");
   await mobilePage.waitForFunction(() => {
     const rowCount = document.querySelectorAll(".problem-table tbody tr").length;
@@ -223,6 +233,8 @@ async function main() {
   await mobilePage.getByTitle("关闭助教").click();
   await mobilePage.locator(".panel-tabs").getByRole("tab", { name: "题解" }).click();
   await mobilePage.getByRole("button", { name: "查看参考题解" }).click();
+  await mobilePage.locator(".solution-spectrum").waitFor({ state: "visible" });
+  await mobilePage.locator(".solution-spectrum").screenshot({ path: path.join(OUTPUT, "solution-spectrum-mobile.png") });
   await mobilePage.getByRole("button", { name: /加载 Python 标准实现/ }).click();
   await mobilePage.getByRole("tab", { name: "代码", exact: true }).click();
   await mobilePage.locator(".monaco-editor").waitFor({ state: "visible", timeout: 30_000 });

@@ -27,7 +27,7 @@ AlgoNote 是一个面向中文算法学习者的 Python / C++ 刷题工作台。
 - 自建 Piston 沙箱执行代码，限制运行时间、内存、输入和源码大小
 - 原创题解按“提示 -> 思路 -> 标准实现”渐进揭示，进入题目时不自动展示答案
 - MIT 第三方实现按真实语言覆盖读取并显示来源
-- OpenAI Responses API 驱动的中文算法助教，可在网页内调节推理强度
+- OpenAI 兼容 Chat Completions 驱动的中文算法助教，可在网页内调节推理强度
 - 收藏、尝试、完成状态保存在浏览器本地
 - 浅色/深色主题，以及桌面双列和移动三标签工作台
 
@@ -72,7 +72,8 @@ npm run dev
 | `PISTON_URL` | 私有 Piston API，默认 `http://127.0.0.1:2000/api/v2` |
 | `ALGONOTE_OPENAI_API_KEY` | 可选；本项目专用密钥，存在时优先于全局 `OPENAI_API_KEY` |
 | `OPENAI_API_KEY` | 可选；启用 AI 助教，必须只放在服务端 |
-| `OPENAI_BASE_URL` | 可选；OpenAI Responses 兼容服务地址，例如本地 CC Switch 提供方 |
+| `OPENAI_BASE_URL` | 可选；OpenAI 兼容服务地址。仅填写主机时会自动补 `/v1`，例如本地 CC Switch 的 `http://127.0.0.1:8080` |
+| `OPENAI_API_MODE` | 助教调用模式，默认 `chat`；仅在提供方支持普通 HTTP Responses API 时设为 `responses` |
 | `OPENAI_MODEL` | 助教模型，可按部署账户可用模型覆盖 |
 | `OPENAI_REASONING_EFFORTS` | 网页可选的推理强度，逗号分隔；默认 `low,medium,high,xhigh,max` |
 | `OPENAI_REASONING_DEFAULT` | 默认推理强度，必须包含在上述列表中；默认 `medium` |

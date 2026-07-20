@@ -4,8 +4,6 @@ import {
   BookOpen,
   CheckCircle2,
   Code2,
-  Database,
-  Languages,
   Map as MapIcon,
   Search,
   Star,
@@ -14,8 +12,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { ProgressController } from "../../hooks/useProgress";
-import { catalog, featuredCount, learningPaths, solutionCoverage } from "../../lib/catalog";
+import { learningPaths } from "../../lib/catalog";
 import type { CatalogProblem, Difficulty } from "../../types/problem";
+import { AlgorithmAtlas } from "./AlgorithmAtlas";
 import { CatalogControls, DifficultyFilter, SearchField } from "./CatalogControls";
 import { EmptyResults, ProblemResults } from "./ProblemResults";
 import type { BrowseView, PathStats, ProgressView } from "./types";
@@ -44,6 +43,7 @@ export function CatalogBrowser({
   browseView,
   difficulty,
   filteredProblems,
+  pathStats,
   progress,
   search,
   onSearchChange,
@@ -56,6 +56,7 @@ export function CatalogBrowser({
   browseView: BrowseView;
   difficulty: "all" | Difficulty;
   filteredProblems: CatalogProblem[];
+  pathStats: ReadonlyMap<string, PathStats>;
   progress: ProgressController;
   search: string;
   onSearchChange: (value: string) => void;
@@ -63,64 +64,63 @@ export function CatalogBrowser({
   onSetQueryValue: (key: "path" | "view", value: string | null) => void;
   onClearFilters: () => void;
 }) {
+  const explorePath = (slug: string) => {
+    onSetQueryValue("path", slug);
+    window.requestAnimationFrame(() => {
+      document.getElementById("problem-explorer")?.scrollIntoView({
+        behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+        block: "start"
+      });
+    });
+  };
+
   return (
     <>
-      <header className="catalog-heading">
-        <div>
-          <p className="catalog-context">{activePathItem?.name || "公开算法题库"}</p>
-          <h1>{activePathItem?.name || "建立你的算法解题系统"}</h1>
-          <p>{activePathItem?.description || "从分类选题到双语言编码、运行测试与复盘，保持在一个工作流里。"}</p>
-        </div>
-        <div className="sync-note" title={`同步时间：${new Date(catalog.syncedAt).toLocaleString("zh-CN")}`}>
-          <span className="sync-dot" />已同步 LeetCode CN 公开目录
-        </div>
-      </header>
+      <AlgorithmAtlas activePath={activePath} pathStats={pathStats} progress={progress} onExplorePath={explorePath} />
 
-      <StatsStrip label="题库统计">
-        <StatItem icon={<Database size={17} />}><strong>{catalog.total.toLocaleString()}</strong> 道公开目录</StatItem>
-        <StatItem icon={<BookOpen size={17} />}><strong>{featuredCount}</strong> 道深度题解</StatItem>
-        <StatItem
-          icon={<Languages size={17} />}
-          title={`Python ${solutionCoverage.counts.python.toLocaleString()} · C++ ${solutionCoverage.counts.cpp.toLocaleString()}`}
-        >
-          <strong>{solutionCoverage.counts.both.toLocaleString()}</strong> 道双语参考
-        </StatItem>
-        <StatItem icon={<Target size={17} />}><strong>{progress.solved.size}</strong> 道已完成</StatItem>
-      </StatsStrip>
+      <section className="problem-explorer" id="problem-explorer" aria-labelledby="problem-explorer-title">
+        <header className="problem-explorer-heading">
+          <div>
+            <h2 id="problem-explorer-title">{activePathItem?.name || "题目索引"}</h2>
+            <p>{activePathItem?.description || "按题号、题型和难度进入练习工作台。"}</p>
+          </div>
+          <strong>{filteredProblems.length.toLocaleString()}<span> 个结果</span></strong>
+        </header>
 
-      <CatalogControls>
-        <SearchField value={search} onChange={onSearchChange} />
-        <DifficultyFilter value={difficulty} onChange={onDifficultyChange} />
-        <button
-          className={browseView === "featured" ? "filter-button is-active" : "filter-button"}
-          type="button"
-          onClick={() => onSetQueryValue("view", browseView === "featured" ? null : "featured")}
-        >
-          <Code2 size={16} />深度题解
-        </button>
-      </CatalogControls>
+        <CatalogControls>
+          <SearchField value={search} onChange={onSearchChange} />
+          <DifficultyFilter value={difficulty} onChange={onDifficultyChange} />
+          <button
+            className={browseView === "featured" ? "filter-button is-active" : "filter-button"}
+            type="button"
+            onClick={() => onSetQueryValue("view", browseView === "featured" ? null : "featured")}
+          >
+            <Code2 size={16} />深度题解
+          </button>
+        </CatalogControls>
 
-      {activePath !== "all" || browseView !== "all" ? (
-        <div className="active-filters" aria-live="polite">
-          <span>{filteredProblems.length} 道结果</span>
-          {activePath !== "all" ? (
-            <button type="button" onClick={() => onSetQueryValue("path", null)}>
-              {activePathItem?.name}<X size={13} />
-            </button>
-          ) : null}
-          {browseView !== "all" ? (
-            <button type="button" onClick={() => onSetQueryValue("view", null)}>
-              {browseViewLabel(browseView)}<X size={13} />
-            </button>
-          ) : null}
-        </div>
-      ) : null}
+        {activePath !== "all" || browseView !== "all" ? (
+          <div className="active-filters" aria-live="polite">
+            <span>{filteredProblems.length} 道结果</span>
+            {activePath !== "all" ? (
+              <button type="button" onClick={() => onSetQueryValue("path", null)}>
+                {activePathItem?.name}<X size={13} />
+              </button>
+            ) : null}
+            {browseView !== "all" ? (
+              <button type="button" onClick={() => onSetQueryValue("view", null)}>
+                {browseViewLabel(browseView)}<X size={13} />
+              </button>
+            ) : null}
+          </div>
+        ) : null}
 
-      <ProblemResults key={`${activePath}:${browseView}:${difficulty}:${search}`} problems={filteredProblems} progress={progress}>
-        <EmptyResults icon={<Search size={23} />} title="没有匹配的题目" description="调整关键词、难度或学习路径后再试。">
-          <button type="button" onClick={onClearFilters}>清除筛选</button>
-        </EmptyResults>
-      </ProblemResults>
+        <ProblemResults key={`${activePath}:${browseView}:${difficulty}:${search}`} problems={filteredProblems} progress={progress}>
+          <EmptyResults icon={<Search size={23} />} title="没有匹配的题目" description="调整关键词、难度或学习路径后再试。">
+            <button type="button" onClick={onClearFilters}>清除筛选</button>
+          </EmptyResults>
+        </ProblemResults>
+      </section>
     </>
   );
 }
@@ -164,7 +164,7 @@ export function LearningPathsView({
         </div>
         <ol>
           {learningPaths.map((path) => {
-            const stats = pathStats.get(path.slug) ?? { total: 0, solved: 0 };
+            const stats = pathStats.get(path.slug) ?? { total: 0, attempted: 0, solved: 0 };
             const percent = stats.total ? Math.round((stats.solved / stats.total) * 100) : 0;
             return (
               <li className="learning-path-row" key={path.slug}>

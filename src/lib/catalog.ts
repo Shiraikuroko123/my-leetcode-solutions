@@ -28,6 +28,11 @@ export const learningPaths = [
   { slug: "greedy", name: "贪心", tags: ["greedy"], description: "局部最优与正确性证明" }
 ] as const;
 
+export const problemsByLearningPath = new Map<string, CatalogProblem[]>(learningPaths.map((path) => [
+  path.slug,
+  problems.filter((problem) => problem.tags.some((tag) => (path.tags as readonly string[]).includes(tag.slug)))
+]));
+
 export function isFeatured(problem: CatalogProblem) {
   return featuredSlugs.has(problem.slug);
 }

@@ -66,14 +66,15 @@ export function AIAssistant({ open, onClose, problem, summary, language, code }:
     };
   }, [setReasoningEffort]);
 
-  const send = async (preset?: string) => {
+  const send = async (preset?: string, requestedHintMode?: "first-step") => {
     const content = (preset || input).trim();
     if (!content || loading) return;
+    const hintMode = requestedHintMode || (/第一步提示|不暴露答案|不要答案|不要给出答案/i.test(content) ? "first-step" : undefined);
     setInput("");
     setMessages((current) => [...current, { role: "user", content }]);
     setLoading(true);
     try {
-      const result = await askTutor({ message: content, code, language, problem, summary, sessionId, reasoningEffort });
+      const result = await askTutor({ message: content, code, language, problem, summary, sessionId, reasoningEffort, hintMode });
       setMessages((current) => [...current, { role: "assistant", content: result.answer }]);
     } catch (error) {
       const content = error instanceof Error ? error.message : "助教暂时无法回答。";
@@ -121,7 +122,7 @@ export function AIAssistant({ open, onClose, problem, summary, language, code }:
             <strong>从思路开始，不急着看答案</strong>
             <p>助教会读取当前编辑器代码。题面不足时会提醒你打开官方页面核对。</p>
             <div className="assistant-prompts">
-              <button type="button" onClick={() => void send("给我一个不暴露答案的第一步提示")}>第一步提示</button>
+              <button type="button" onClick={() => void send("给我一个不暴露答案的第一步提示", "first-step")}>第一步提示</button>
               <button type="button" onClick={() => void send("检查我当前代码的逻辑错误，并给出一个失败用例")}>检查代码</button>
               <button type="button" onClick={() => void send("帮我分析这道题应该使用的数据结构")}>选择数据结构</button>
             </div>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resolveOpenAIApiKey, resolveReasoningConfig } from "./openaiConfig";
+import { resolveOpenAIApiKey, resolveOpenAIBaseUrl, resolveOpenAIApiMode, resolveReasoningConfig } from "./openaiConfig";
 
 describe("resolveOpenAIApiKey", () => {
   it("prefers the AlgoNote-specific key", () => {
@@ -38,5 +38,20 @@ describe("resolveReasoningConfig", () => {
       OPENAI_REASONING_EFFORTS: "high,max",
       OPENAI_REASONING_DEFAULT: "medium"
     })).toEqual({ supportedEfforts: ["high", "max"], defaultEffort: "high" });
+  });
+});
+
+describe("OpenAI compatibility settings", () => {
+  it("adds the v1 path for a root-compatible provider URL", () => {
+    expect(resolveOpenAIBaseUrl({ OPENAI_BASE_URL: "http://127.0.0.1:8080" })).toBe("http://127.0.0.1:8080/v1");
+  });
+
+  it("keeps an explicitly configured API path", () => {
+    expect(resolveOpenAIBaseUrl({ OPENAI_BASE_URL: "https://example.test/custom/" })).toBe("https://example.test/custom");
+  });
+
+  it("defaults to chat completions for OpenAI-compatible proxies", () => {
+    expect(resolveOpenAIApiMode({})).toBe("chat");
+    expect(resolveOpenAIApiMode({ OPENAI_API_MODE: "responses" })).toBe("responses");
   });
 });

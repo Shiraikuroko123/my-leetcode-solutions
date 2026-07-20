@@ -32,7 +32,10 @@
     "typecheck": "tsc -b --pretty false"
   },
   "dependencies": {
+    "@fontsource-variable/ibm-plex-sans": "^5.2.8",
+    "@fontsource-variable/jetbrains-mono": "^5.2.8",
     "@monaco-editor/react": "^4.7.0",
+    "@xyflow/react": "^12.11.2",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",

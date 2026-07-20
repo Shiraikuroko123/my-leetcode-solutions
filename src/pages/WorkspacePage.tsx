@@ -23,6 +23,8 @@ import { AIAssistant } from "../components/AIAssistant";
 import { AppHeader } from "../components/AppHeader";
 import { CodeEditor } from "../components/CodeEditor";
 import { DifficultyBadge } from "../components/DifficultyBadge";
+import { SolutionSpectrum } from "../components/SolutionSpectrum";
+import { solutionComparisons } from "../data/solutionComparisons";
 import { useProgress } from "../hooks/useProgress";
 import type { Theme } from "../hooks/useTheme";
 import { fetchExternalSolution, runCode, type ExternalSolution } from "../lib/api";
@@ -322,6 +324,7 @@ export function WorkspacePage({ theme, onToggleTheme }: WorkspacePageProps) {
                       <>
                         <h1>{featured.approach.title}</h1>
                         {featured.approach.intuition.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
+                        <SolutionSpectrum comparisons={solutionComparisons[problem.slug] ?? []} />
                         <h2>步骤</h2>
                         <ol>{featured.approach.steps.map((step) => <li key={step}>{step}</li>)}</ol>
                         <div className="complexity-row">

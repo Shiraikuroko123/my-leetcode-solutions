@@ -6,7 +6,7 @@ import { CatalogBrowser, LearningPathsView, ProgressOverview } from "../componen
 import type { BrowseView, CatalogSection, PathStats, ProgressView } from "../components/catalog/types";
 import { useProgress } from "../hooks/useProgress";
 import type { Theme } from "../hooks/useTheme";
-import { isFeatured, learningPaths, problems } from "../lib/catalog";
+import { isFeatured, learningPaths, problems, problemsByLearningPath } from "../lib/catalog";
 import type { CatalogProblem, Difficulty } from "../types/problem";
 
 export type { CatalogSection } from "../components/catalog/types";
@@ -20,13 +20,9 @@ type CatalogPageProps = {
 const EMPTY_PROBLEMS: CatalogProblem[] = [];
 const browseViews = new Set<BrowseView>(["all", "featured", "attempted", "starred", "solved"]);
 const progressViews = new Set<ProgressView>(["all", "attempted", "solved", "starred"]);
-const problemsByPath = new Map<string, CatalogProblem[]>(learningPaths.map((path) => [
-  path.slug,
-  problems.filter((problem) => problem.tags.some((tag) => (path.tags as readonly string[]).includes(tag.slug)))
-]));
 const learningPathBySlug = new Map<string, (typeof learningPaths)[number]>(learningPaths.map((path) => [path.slug, path]));
 const learningPathProblemSlugs = new Set(
-  Array.from(problemsByPath.values()).flatMap((pathProblems) => pathProblems.map((problem) => problem.slug))
+  Array.from(problemsByLearningPath.values()).flatMap((pathProblems) => pathProblems.map((problem) => problem.slug))
 );
 
 function readBrowseView(value: string | null): BrowseView {
@@ -56,7 +52,7 @@ export function CatalogPage({ section, theme, onToggleTheme }: CatalogPageProps)
   const [difficulty, setDifficulty] = useState<"all" | Difficulty>("all");
 
   const requestedPath = searchParams.get("path");
-  const activePath = requestedPath && problemsByPath.has(requestedPath) ? requestedPath : "all";
+  const activePath = requestedPath && problemsByLearningPath.has(requestedPath) ? requestedPath : "all";
   const activePathItem = activePath === "all" ? undefined : learningPathBySlug.get(activePath);
   const browseView = readBrowseView(searchParams.get("view"));
   const progressView = readProgressView(searchParams.get("view"));
@@ -67,12 +63,13 @@ export function CatalogPage({ section, theme, onToggleTheme }: CatalogPageProps)
   );
 
   const pathStats = useMemo<Map<string, PathStats>>(() => new Map(learningPaths.map((path) => {
-    const pathProblems = problemsByPath.get(path.slug) ?? EMPTY_PROBLEMS;
+    const pathProblems = problemsByLearningPath.get(path.slug) ?? EMPTY_PROBLEMS;
     return [path.slug, {
       total: pathProblems.length,
-      solved: pathProblems.filter((problem) => progress.solved.has(problem.slug)).length
+      solved: pathProblems.filter((problem) => progress.solved.has(problem.slug)).length,
+      attempted: pathProblems.filter((problem) => progress.attempted.has(problem.slug)).length
     } satisfies PathStats];
-  })), [progress.solved]);
+  })), [progress.attempted, progress.solved]);
 
   const solvedInLearningPaths = useMemo(
     () => Array.from(learningPathProblemSlugs).filter((slug) => progress.solved.has(slug)).length,
@@ -83,7 +80,7 @@ export function CatalogPage({ section, theme, onToggleTheme }: CatalogPageProps)
     if (section === "paths") return EMPTY_PROBLEMS;
 
     if (section === "catalog") {
-      const pathProblems = activePath === "all" ? problems : problemsByPath.get(activePath) ?? EMPTY_PROBLEMS;
+      const pathProblems = activePath === "all" ? problems : problemsByLearningPath.get(activePath) ?? EMPTY_PROBLEMS;
       return pathProblems.filter((problem) => {
         if (!matchesSearchAndDifficulty(problem, deferredSearch, difficulty)) return false;
         if (browseView === "featured") return isFeatured(problem);
@@ -166,6 +163,7 @@ export function CatalogPage({ section, theme, onToggleTheme }: CatalogPageProps)
               browseView={browseView}
               difficulty={difficulty}
               filteredProblems={filteredProblems}
+              pathStats={pathStats}
               progress={progress}
               search={search}
               onSearchChange={setSearch}

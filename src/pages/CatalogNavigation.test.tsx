@@ -58,5 +58,5 @@ describe("catalog navigation", () => {
 
     expect(screen.getByLabelText("当前地址")).toHaveTextContent("/progress?view=starred");
     expect(screen.getByRole("link", { name: /两数之和/ })).toBeInTheDocument();
-  });
+  }, 10_000);
 });

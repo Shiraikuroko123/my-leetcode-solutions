@@ -12,8 +12,22 @@ export type AppConfig = {
 };
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = (await response.json()) as T & { error?: string };
-  if (!response.ok) throw new Error(payload.error || `Request failed: ${response.status}`);
+  const raw = await response.text();
+  let payload: (T & { error?: string }) | undefined;
+
+  if (raw.trim()) {
+    try {
+      payload = JSON.parse(raw) as T & { error?: string };
+    } catch {
+      const detail = response.ok ? "服务返回了无法解析的内容。" : `请求失败（HTTP ${response.status}）。`;
+      throw new Error(`${detail} 请检查 AlgoNote API 与 CCSwitch 是否正常运行。`);
+    }
+  }
+
+  if (!response.ok) {
+    throw new Error(payload?.error || `请求失败（HTTP ${response.status}）。请检查 AlgoNote API 与 CCSwitch。`);
+  }
+  if (!payload) throw new Error("服务返回了空响应。请检查 AlgoNote API 与 CCSwitch。");
   return payload;
 }
 
@@ -52,6 +66,7 @@ export async function askTutor(options: {
   summary: string[];
   sessionId: string;
   reasoningEffort: ReasoningEffort;
+  hintMode?: "first-step";
 }) {
   const response = await fetch("/api/assistant", {
     method: "POST",
@@ -61,6 +76,7 @@ export async function askTutor(options: {
       code: options.code,
       language: options.language,
       reasoningEffort: options.reasoningEffort,
+      hintMode: options.hintMode,
       problem: {
         id: options.problem.id,
         title: options.problem.title,

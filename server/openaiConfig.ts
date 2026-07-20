@@ -2,6 +2,23 @@ export function resolveOpenAIApiKey(env: NodeJS.ProcessEnv = process.env) {
   return env.ALGONOTE_OPENAI_API_KEY?.trim() || env.OPENAI_API_KEY?.trim() || undefined;
 }
 
+export function resolveOpenAIBaseUrl(env: NodeJS.ProcessEnv = process.env) {
+  const configured = env.OPENAI_BASE_URL?.trim();
+  if (!configured) return undefined;
+
+  try {
+    const url = new URL(configured);
+    if (url.pathname === "/" || url.pathname === "") url.pathname = "/v1";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return configured.replace(/\/$/, "");
+  }
+}
+
+export function resolveOpenAIApiMode(env: NodeJS.ProcessEnv = process.env): "chat" | "responses" {
+  return env.OPENAI_API_MODE?.trim().toLowerCase() === "responses" ? "responses" : "chat";
+}
+
 export const REASONING_EFFORTS = ["low", "medium", "high", "xhigh", "max", "ultra"] as const;
 export type ReasoningEffort = (typeof REASONING_EFFORTS)[number];
 
