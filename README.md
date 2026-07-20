@@ -59,6 +59,8 @@ npm run dev
 
 若 Windows PowerShell 禁止执行 `npm.ps1`，把命令中的 `npm` 改为 `npm.cmd`。
 
+完成首次配置后，Windows 用户可以直接双击 `start-algonote.bat`。脚本会在后台启动缺失的 Web/API 服务，网站可访问后自动打开浏览器并关闭命令窗口；重复双击不会启动重复服务。
+
 `npm run setup:runner` 会启动 `docker-compose.runner.yml` 中的 Piston，并安装 Python 与 GCC 运行时。首次安装需要下载镜像和语言包。
 
 ## 环境变量

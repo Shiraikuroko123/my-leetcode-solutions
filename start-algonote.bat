@@ -36,17 +36,17 @@ if errorlevel 1 (
   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if (Get-NetTCPConnection -LocalPort %API_PORT% -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >nul 2>&1
   if errorlevel 1 (
     echo Starting AlgoNote Web and API...
-    start "AlgoNote Web" /min cmd /d /c "cd /d ""%~dp0"" && npm.cmd run dev:web"
-    start "AlgoNote API" /min cmd /d /c "cd /d ""%~dp0"" && set PORT=%API_PORT%&& node --import tsx server/index.ts"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Process -FilePath 'node.exe' -ArgumentList 'node_modules/vite/bin/vite.js' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$env:PORT='%API_PORT%'; Start-Process -FilePath 'node.exe' -ArgumentList '--import','tsx','server/index.ts' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
   ) else (
     echo Starting AlgoNote Web...
-    start "AlgoNote Web" /min cmd /d /c "cd /d ""%~dp0"" && npm.cmd run dev:web"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "Start-Process -FilePath 'node.exe' -ArgumentList 'node_modules/vite/bin/vite.js' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
   )
 ) else (
   powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if (Get-NetTCPConnection -LocalPort %API_PORT% -State Listen -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >nul 2>&1
   if errorlevel 1 (
     echo Starting AlgoNote API...
-    start "AlgoNote API" /min cmd /d /c "cd /d ""%~dp0"" && set PORT=%API_PORT%&& node --import tsx server/index.ts"
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command "$env:PORT='%API_PORT%'; Start-Process -FilePath 'node.exe' -ArgumentList '--import','tsx','server/index.ts' -WorkingDirectory '%~dp0' -WindowStyle Hidden"
   )
 )
 
@@ -61,7 +61,7 @@ for /l %%N in (1,1,60) do (
 )
 
 echo AlgoNote did not become ready within 60 seconds.
-echo Check the dev server window for details.
+echo Check Node.js, npm, and whether ports %WEB_PORT% and %API_PORT% are available, then try again.
 pause
 exit /b 1
 
